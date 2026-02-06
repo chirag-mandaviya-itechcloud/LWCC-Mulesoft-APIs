@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:customlogger="http://www.mulesoft.org/schema/mule/customlogger"
+	xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/customlogger http://www.mulesoft.org/schema/mule/customlogger/current/mule-customlogger.xsd">
+
+
+
+	<error-handler name="api-common-error-handler"
+		doc:id="88aeda85-3ace-48a3-a731-0715ab56d52b">
+
+
+		<on-error-propagate type="APIKIT:BAD_REQUEST">
+			<ee:transform
+				xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+				xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+				doc:id="845e1fe2-8ee3-436a-bc2c-8a3b336a2a50"
+				doc:name="build error msg">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorType": "BAD_REQUEST",
+  	"errorCode": 400,
+  	"errorMessage": "Invalid or missing request parameter" ++ (if (error != null and error.errorType != null and error.description != null) (" (" ++  error.errorType.namespace ++ ":" ++ error.errorType.identifier ++ " :: " ++ error.description ++")") else ("")) as String,
+  	"transactionId": correlationId
+}]]></ee:set-payload>
+
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="log error msg" doc:id="61ddea4b-e306-4577-a9ce-54f584987348" name="error-log-subflow" targetValue="#[vars.errorPayload]" />
+		</on-error-propagate>
+		<on-error-propagate type="APIKIT:NOT_FOUND">
+			<ee:transform
+				xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+				xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+				doc:id="a76a59d8-3575-472f-b4b7-7ad0df18d070"
+				doc:name="build error msg">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorType": "NOT_FOUND",
+  	"errorCode": 404,
+  	"errorMessage": "Resource Not Found" ++ (if (error != null and error.errorType != null and error.description != null) (" (" ++  error.errorType.namespace ++ ":" ++ error.errorType.identifier ++ " :: " ++ error.description ++")") else ("")) as String,
+  	"transactionId": correlationId
+}]]></ee:set-payload>
+
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="log error msg"
+				doc:id="e08b5cee-59eb-4634-80b1-b584a56c1dbb"
+				name="error-log-subflow" targetValue="#[vars.errorPayload]" />
+		</on-error-propagate>
+		<on-error-propagate
+			type="APIKIT:METHOD_NOT_ALLOWED">
+			<ee:transform
+				xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+				xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+				doc:id="b8c1cf4c-19ab-474f-bf62-a645757d36ee"
+				doc:name="build error msg">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorType": "METHOD_NOT_ALLOWED",
+  	"errorCode": 405,
+  	"errorMessage": "Method Not Allowed" ++ (if (error != null and error.errorType != null and error.description != null) (" (" ++  error.errorType.namespace ++ ":" ++ error.errorType.identifier ++ " :: " ++ error.description ++")") else ("")) as String,
+  	"transactionId": correlationId
+}]]></ee:set-payload>
+
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="httpStatus"><![CDATA[405]]></ee:set-variable>
+
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="log error msg"
+				doc:id="973de3db-fddc-4896-994d-1ec11397ed47"
+				name="error-log-subflow" targetValue="#[vars.errorPayload]" />
+		</on-error-propagate>
+		<on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+			<ee:transform
+				xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+				xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+				doc:id="a3bce55a-3232-4294-9f12-043cc02678db"
+				doc:name="build error msg">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorType": "NOT_ACCEPTABLE",
+  	"errorCode": 406,
+  	"errorMessage": "Not Acceptable" ++ (if (error != null and error.errorType != null and error.description != null) (" (" ++  error.errorType.namespace ++ ":" ++ error.errorType.identifier ++ " :: " ++ error.description ++")") else ("")) as String,
+  	"transactionId": correlationId
+}
+]]></ee:set-payload>
+
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="httpStatus"><![CDATA[406]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="log error msg"
+				doc:id="8bd01c47-b00c-4e90-9cd4-bdefa0ed72c9"
+				name="error-log-subflow" targetValue="#[vars.errorPayload]" />
+		</on-error-propagate>
+		<on-error-propagate
+			type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+			<ee:transform
+				xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+				xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+				doc:id="7266f2ac-2570-4c06-bbc4-6f6851224b05"
+				doc:name="build error msg">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorType": "UNSUPPORTED_MEDIA_TYPE",
+  	"errorCode": 415,
+  	"errorMessage": "Unsupported Media Type" ++ (if (error != null and error.errorType != null and error.description != null) (" (" ++  error.errorType.namespace ++ ":" ++ error.errorType.identifier ++ " :: " ++ error.description ++")") else ("")) as String,
+  	"transactionId": correlationId
+}]]></ee:set-payload>
+
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="httpStatus"><![CDATA[415]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="log error msg"
+				doc:id="a49a24a5-0e0d-4cf7-8df1-42b9a67a2a8f"
+				name="error-log-subflow" targetValue="#[vars.errorPayload]" />
+		</on-error-propagate>
+		<on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+			<ee:transform
+				xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+				xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd"
+				doc:id="69f2ab00-9c88-4e49-a63a-0bf18bf560dc"
+				doc:name="build error msg">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorType": "NOT_IMPLEMENTED",
+  	"errorCode": 501,
+  	"errorMessage": "NOT Implemented" ++ (if (error != null and error.errorType != null and error.description != null) (" (" ++  error.errorType.namespace ++ ":" ++ error.errorType.identifier ++ " :: " ++ error.description ++")") else ("")) as String,
+  	"transactionId": correlationId
+}]]></ee:set-payload>
+
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="httpStatus"><![CDATA[501]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<flow-ref doc:name="log error msg"
+				doc:id="9a80808d-a501-4faf-b9f9-1546ba8eff89"
+				name="error-log-subflow" targetValue="#[vars.errorPayload]" />
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true"
+			logException="true" doc:name="On Error Propagate"
+			doc:id="b107ba20-d96f-4d3b-b138-21ab2258626c" type="ANY">
+			<ee:transform doc:name="build error msg"
+				doc:id="e032e8ea-08f6-44b4-a5f7-ac66f0568bf4">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"errorCode": error.errorType.identifier,
+	"errorMessage": "FAILURE",
+	"errorDescription": error.description,
+	"transactionId": attributes.headers.'x-correlation-id' default correlationId,
+  	"timeStamp": now()
+}]]></ee:set-payload>
+
+
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="httpStatus"><![CDATA[500]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Error Response as Variable" doc:id="6e98359a-d192-4759-8f60-dba27fd69671" variableName="logResponseVar" />
+			<flow-ref doc:name="log error msg"
+				doc:id="90cf362e-37ec-49dc-b104-88fbcf441e5f"
+				name="error-log-subflow" targetValue="#[vars.errorPayload]" />
+			<async doc:name="Async" doc:id="012ef4d6-c318-427a-a223-e6d9bf8a7eac" >
+				<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="027bde2f-c8ba-4110-8e4e-ce088cc2fb0e" name="create-integration-logs-subflow"/>
+			</async>
+		</on-error-propagate>
+	</error-handler>
+	<sub-flow name="error-log-subflow"
+		doc:id="c01c364f-f737-440e-ab70-28e60141cf99">
+		<logger level="INFO" doc:name="Log error"
+			doc:id="27c125da-22a9-4164-b8a0-ece52854cbe9" message="#[payload]" />
+
+	</sub-flow>
+
+
+</mule>

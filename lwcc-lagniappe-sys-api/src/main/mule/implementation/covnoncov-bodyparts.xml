@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<flow name="covnoncov-bodyparts-flow"
+		doc:id="a0f2a463-197a-41c0-9157-dc88708dd17f">
+		<set-variable
+			value="#[payload.operation == 'Update']"
+			doc:name="Set Update Flag"
+			doc:id="d9319f44-e854-4a10-8796-6d4394835632" variableName="isUpdate" />
+		<ee:transform
+			doc:name="Prepare Store Procedure Call"
+			doc:id="5b6656c3-d4ec-4aa4-b64c-bca79be670db">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable
+					resource="transforms/dwl/prepare_sp_call.dwl"
+					variableName="in_cncbodypart_rec" />
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger
+			doc:name="Log BEFORE Call CovNonCov Bodypart SP"
+			doc:id="7959244f-f13b-4f44-ad7c-c3e0713df906"
+			config-ref="JSON_Logger_Config"
+			message="BEFORE Call CovNonCov Bodypart SP"
+			tracePoint="BEFORE_REQUEST">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(vars.in_cncbodypart_rec) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="${httpsRequest.reconnection.attempts}" doc:name="Until Successful" doc:id="a2fca076-2e9a-4fd3-82be-52e67126c1c5" millisBetweenRetries="${httpsRequest.reconnection.frequency}">
+			<db:stored-procedure doc:name="Call CovNonCov Bodypart SP" doc:id="495f51de-33f0-4e89-8162-34e013d4e9b4" config-ref="Database_Config" queryTimeout="30000" queryTimeoutUnit="MILLISECONDS">
+			<db:sql><![CDATA[{ call pkg_dgtl_exprn_clm_intfc.prc_cov_uncov_body_parts(:body_part_rec, :response) }]]></db:sql>
+			<db:input-parameters><![CDATA[#[{ body_part_rec: vars.in_cncbodypart_rec }]]]></db:input-parameters>
+			<db:output-parameters>
+				<db:output-parameter key="response" customType="PKG_DGTL_EXPRN_CLM_INTFC.INTF_ERR_REC" />
+			</db:output-parameters>
+		</db:stored-procedure>
+		</until-successful>
+		<ee:transform doc:name="CovNonCov Bodypart SP Response to JSON" doc:id="6dae319f-4960-4e8d-8c72-41856ee8b370">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger
+			doc:name="Log AFTER Call CovNonCov Bodypart SP"
+			doc:id="b6db2772-96b0-45ba-9807-89938b698c89"
+			config-ref="JSON_Logger_Config" tracePoint="AFTER_REQUEST"
+			message="AFTER Call CovNonCov Bodypart SP" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="783e8fd4-1c4d-4e14-9977-07d7609fac47" >
+			<when expression="#[payload.response[0] == 0 and vars.isUpdate]">
+				<ee:transform doc:name="Set Success 200 Response" doc:id="1bb0a802-3215-4833-bea9-a20d58bd8459">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "code": "OK",
+  "message": "Success"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus"><![CDATA[200]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<when expression="#[payload.response[0] == 0 and !vars.isUpdate]">
+				<ee:transform doc:name="Set Success 201 Response" doc:id="30d95a11-ebdf-45a2-8940-20d1134b8b1d">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "code": "OK",
+  "message": "Success"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus"><![CDATA[201]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			
+</when>
+			<otherwise >
+				<ee:transform doc:name="Set Error Response" doc:id="7473f514-fb09-452d-8b07-eb431ad664e0">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"error": payload.response[1]
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus"><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

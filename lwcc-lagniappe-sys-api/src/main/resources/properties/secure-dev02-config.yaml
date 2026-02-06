@@ -1,0 +1,9 @@
+db:
+  host: "![hlwFOTCCVYbdFZ2VaEuF5x04jaHTf3oWwldqvLRw1IA=]"
+  user: "![TDqjcGfAQsCcH0VPb/tY6Q==]"
+  password: "![TDqjcGfAQsCcH0VPb/tY6Q==]"
+
+httpReq:
+  integ:
+    clientId: "![86FbyQt1iNRVnfuRlvHrUOW9F6IfvfRLVwOGHZyj7uo=]"
+    clientSecret: "![MTBTZ5yiGrthBc+5o3nQta84dCmF07xl1lqOLY1gr4YzblSJobzboUpc1klM7opdN18oXiQs2KokiLqN0iCZ2yEPBsPlagdO1CjLWyj8qeY=]"

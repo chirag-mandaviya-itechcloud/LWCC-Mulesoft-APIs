@@ -1,0 +1,30 @@
+{
+  "extensionModelLoaderDescriptor": {
+    "id": "java",
+    "attributes": {
+      "type": "org.mule.extension.jsonlogger.internal.JsonloggerExtension",
+      "version": "2.2.0"
+    }
+  },
+  "name": "JSON Logger",
+  "requiredProduct": "MULE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "privilegedExportedPackages": [],
+      "privilegedArtifactIds": [],
+      "exportedPackages": [
+        "org.mule.extension.jsonlogger.api.pojos",
+        "org.mule.extension.jsonlogger.internal.destinations"
+      ],
+      "exportedResources": [
+        "modules/JSONLoggerModule.dwl"
+      ]
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  },
+  "minMuleVersion": "4.6.0"
+}

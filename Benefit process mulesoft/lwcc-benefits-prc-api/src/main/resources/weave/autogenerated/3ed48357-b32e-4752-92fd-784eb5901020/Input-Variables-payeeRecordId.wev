@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_3ed48357_b32e_4752_92fd_784eb5901020_Input_Variables_payeeRecordId = Any
+

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="cvncv-medproviders-app-impl-flow" doc:id="69df6ed2-98ee-4ce5-83b2-21cb8db00f37" >
+		<ee:transform doc:name="Set Claims Process API Request Body and Method var" doc:id="5e15a772-aa9d-48bc-82af-d4512959cdf3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+    "sfRecordId": payload.data.payload.ChangeEventHeader.recordIds[0],
+    "operation": capitalize(payload.data.payload.ChangeEventHeader.changeType)
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="reqmethod" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.data.payload.ChangeEventHeader.changeType match {
+    case changetype if (changetype == 'CREATE') -> "POST"
+    case changetype if (changetype == 'UPDATE') -> "PUT"
+    case changetype if (changetype == 'DELETE') -> "DELETE"
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger doc:name="Logg BEFORE Call Claims Process API" doc:id="fd698c1a-0d46-44b5-b236-b0a3517c031c" config-ref="JSON_Logger_Config" message="BEFORE Call Claims Process API" tracePoint="BEFORE_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<http:request method="#[vars.reqmethod]" doc:name="Call Claims Process API" doc:id="0859693c-4445-44e6-aea1-e0ef13c47554" config-ref="HTTP_Request_conf_claims_prc_api" path="${claims.path}" >
+			<http:headers ><![CDATA[#[{
+	"client_secret" : Mule::p('secure::httpReq.claims.clientSecret'),
+	"client_id" : Mule::p('secure::httpReq.claims.clientId')
+}]]]></http:headers>
+		</http:request>
+		<json-logger:logger doc:name="Logg AFTER Call Claims Process API" doc:id="90232ecb-dd5f-4b61-a611-967fd2e0175f" config-ref="JSON_Logger_Config" message="AFTER  Call Claims Process API" tracePoint="AFTER_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</flow>
+</mule>

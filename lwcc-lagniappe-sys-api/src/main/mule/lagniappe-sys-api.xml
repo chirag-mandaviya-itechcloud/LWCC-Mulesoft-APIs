@@ -1,0 +1,596 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+    <flow name="lagniappe-sys-api-main">
+        <http:listener doc:name="Listener" doc:id="316b4a6b-abc8-4351-9d8d-afb38db9fa67" config-ref="lagniappe-sys-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <flow-ref doc:name="Call Set Metadata subflow" doc:id="57230263-9d12-4bfe-a45f-702f7988f33d" name="set-metadata-subflow" />
+        <apikit:router config-ref="lagniappe-sys-api-config" />
+        <error-handler ref="api-common-error-handler" />
+    </flow>
+    <flow name="put:\covNonCovBodyParts:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START CovNonCov BodyParts PUT Operation" doc:id="1ab4c59d-7234-4613-b08f-f0de22f64cd6" config-ref="JSON_Logger_Config" message="START CovNonCov BodyParts PUT Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="be0bcafc-5626-4e51-8291-fa2c60e2790e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="logReuqestVar" ><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar" ><![CDATA[%dw 2.0
+output application/json
+---
+"PUT covNonCovBodyParts Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call covnoncov-bodyparts-flow" doc:id="ba041f67-e6b4-4d0f-89e4-fa07f35229ba" name="covnoncov-bodyparts-flow" />
+		<json-logger:logger doc:name="Log END CovNonCov BodyParts PUT Operation" doc:id="b9fb08eb-a385-4697-86f4-c133a91b205c" config-ref="JSON_Logger_Config" message="END CovNonCov BodyParts PUT Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="161d7729-d695-4902-8b71-686a7bc3d552" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="9f49518c-2b46-4c12-883f-cf9b71bfed8d" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="1eecffcc-a743-4ad1-b227-e28f9f8f9d75" name="create-integration-logs-subflow"/>
+		</async>
+    </flow>
+    <flow name="delete:\covNonCovBodyParts:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START CovNonCov BodyParts DELETE Operation" doc:id="31555d08-b5eb-4455-9a86-ebf33aa52d9b" config-ref="JSON_Logger_Config" message="START CovNonCov BodyParts DELETE Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="00e51112-d313-4e7e-8112-be69f640ef85">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"DELETE covNonCovBodyParts Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call covnoncov-bodyparts-flow" doc:id="27453a58-9f3e-4d39-be4f-46dee20db22e" name="covnoncov-bodyparts-flow" />
+		<json-logger:logger doc:name="Log END CovNonCov BodyParts DELETE Operation" doc:id="5d9593aa-b801-423e-9829-2136c3b1d3dc" config-ref="JSON_Logger_Config" message="END CovNonCov BodyParts DELETE Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="9a575e9c-0e63-4ec9-b4bb-6942178db323" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="0e6ff8dd-2f3c-4cb4-8156-fe055e49c94e" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="87b3a7d9-c104-49ca-bc6b-051dd2813d09" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="get:\healthcheck:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START Lagniappe System API Healtcheck" doc:id="744a991f-9739-458c-807d-c180cc213f70" config-ref="JSON_Logger_Config" message="START Lagniappe System API Healtcheck">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<ee:transform doc:name="Set Lagniappe System API Healtcheck Response" doc:id="c2ed5e51-740f-40de-b62c-c7b5a1a72a8b">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  code: "OK",
+  message: "Success"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <json-logger:logger doc:name="Log END Lagniappe System API Healtcheck" doc:id="dc355867-d3f5-4c30-b36b-2055f35750c0" config-ref="JSON_Logger_Config" message="END Lagniappe System API Healtcheck" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+    </flow>
+    <flow name="post:\covNonCovBodyParts:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START CovNonCov BodyParts POST Operation" doc:id="7cd66607-f870-4b4f-b543-a5d025d342a7" config-ref="JSON_Logger_Config" message="START CovNonCov BodyParts POST Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="45b4b514-f8c4-4ee4-8786-e4378ce8c753">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"POST covNonCovBodyParts Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call covnoncov-bodyparts-flow" doc:id="a995ee43-5fb8-4ccc-94f9-de015dc8fda6" name="covnoncov-bodyparts-flow" />
+		<json-logger:logger doc:name="Log END CovNonCov BodyParts POST Operation" doc:id="ebfc8c81-b314-4694-b070-2ede1fd71046" config-ref="JSON_Logger_Config" message="END CovNonCov BodyParts POST Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="c669cb1e-244c-4067-83fe-2e4425e88fa9" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="7ec0dcee-df11-438f-83d3-f817371e7c0b" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="198f71ef-0492-4741-aada-f9698bd038d2" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="put:\claim:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START Claims PUT Operation" doc:id="b231ea89-c763-420a-81f5-a2c06f478c55" config-ref="JSON_Logger_Config" message="START Claims PUT Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="cc86606b-7bce-425f-bdd3-f21fa1b8828b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"PUT claim Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call claims-flow" doc:id="c318ec09-7626-4488-94ec-761812f7bd92" name="claims-flow" />
+		<json-logger:logger doc:name="Log END Claims PUT Operation" doc:id="8de46f10-6ef5-42c2-ac9d-a8afb55008bd" config-ref="JSON_Logger_Config" message="END Claims PUT Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="d7cf7d59-591c-425a-b3a8-98c2125cb08e" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="fc7ae6a4-eaa5-46ad-a5ff-314ca336c398" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="962038a0-cbf6-4e0d-9cf2-209846af5b51" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="put:\covNonCovMedProviders:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START CovNonCov MedProvider PUT Operation" doc:id="41fed60f-0646-43bc-b332-42d470a5af98" config-ref="JSON_Logger_Config" message="START CovNonCov MedProvider PUT Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="cff1ae70-92a3-449b-a85e-0b023706c8cb">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"PUT covNonCovMedProviders Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call covnoncov-providers-flow" doc:id="13713df0-237d-4c93-b35c-f26b2c243c40" name="covnoncov-providers-flow" />
+		<json-logger:logger doc:name="Log END CovNonCov MedProvider PUT Operation" doc:id="c766b64d-53dc-45cd-820f-85dc872be9f3" config-ref="JSON_Logger_Config" message="END CovNonCov MedProvider PUT Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="b627dc95-a531-4395-93cc-e9fdc51f4dd9" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="f9659136-ff95-44d3-a212-9eb717c35dac" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="3318247a-28c0-4a16-968b-3e4c743eaeac" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="delete:\covNonCovMedProviders:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START CovNonCov MedProvider DELETE Operation" doc:id="4cc21979-cf90-4ad7-af16-2594f9ff8ef8" config-ref="JSON_Logger_Config" message="START CovNonCov MedProvider DELETE Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="7e4e9e3b-d16c-456b-a03f-0d6962e05e6f">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"DELETE covNonCovMedProviders Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call covnoncov-providers-flow" doc:id="91ee8fba-79ce-427b-8716-681d7dfe9325" name="covnoncov-providers-flow" />
+		<json-logger:logger doc:name="Log END CovNonCov MedProvider DELETE Operation" doc:id="157649d2-f647-425a-8604-da8058d10af3" config-ref="JSON_Logger_Config" message="END CovNonCov MedProvider DELETE Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="02ad8ecc-4a4d-4a1f-bd3b-e6b1aa86f6dd" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="fffc04ee-d4a1-4cb4-84da-2fcdb9970265" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="f32e01e9-ed53-4e8e-b396-4db296affef8" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="post:\claim:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START Claims POST Operation" doc:id="cc504f36-5414-45e2-a4f5-ed4669830b1f" config-ref="JSON_Logger_Config" message="START Claims POST Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="913aac06-d609-40e2-ab0d-9a68b56a9208">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"POST claim Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call claims-flow" doc:id="7176c024-5b55-471f-97c1-63e800a8f224" name="claims-flow" />
+		<json-logger:logger doc:name="Log END Claims POST Operation" doc:id="1a5fd4f8-d34b-47f5-b1dd-a09db56302e3" config-ref="JSON_Logger_Config" message="END Claims POST Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="9b594bf9-cdb8-48ab-b1d5-78e92231d924" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="d41a0d71-e93a-46e5-9062-cf4f597f8187" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="55dfceb5-2774-4f73-ba9f-24ff7f6a7ea5" name="create-integration-logs-subflow" />
+		</async>
+		<error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8d940659-0354-4bea-a0a1-00fef4b78061" type="MULE:EXPRESSION">
+                <ee:transform doc:name="Set FAILURE Response" doc:id="563c1bbb-ceb1-4b6c-a83a-fbb4e94852cc">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+	"errorCode": error.errorType.asString,
+	"errorMessage": "FAILURE",
+	"errorDescription": substringBefore(error.description,"^^^^^"),
+	"transactionId": attributes.headers.'x-correlation-id',
+  	"timeStamp": now()
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\covNonCovMedProviders:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START CovNonCov MedProvider POST Operation" doc:id="0f7cfd6a-b0de-4e6d-898f-f2f2008ce12a" config-ref="JSON_Logger_Config" message="START CovNonCov MedProvider POST Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="fbee5b0d-3c36-4484-b730-558001077c3e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"POST covNonCovMedProviders Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call covnoncov-providers-flow" doc:id="d69c994d-764d-4a1d-9391-abc12dbd1b8a" name="covnoncov-providers-flow" />
+		<json-logger:logger doc:name="Log END CovNonCov MedProvider POST Operation" doc:id="37a6d266-722c-490c-8070-bb7d8746849e" config-ref="JSON_Logger_Config" message="END CovNonCov MedProvider POST Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="918c5b9b-673d-462f-8ed0-fcd4c053af6c" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="9512a519-79ea-4724-a001-dfe749163454" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="3046d8cf-b140-4e9a-b904-dd5118b419cb" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="get:\imageRightDocumentInfo:lagniappe-sys-api-config" doc:id="4cc04339-c2a2-4539-9c5c-cbf30b83f392">
+        <json-logger:logger doc:name="Log START Image Right Document Info GET Operation" doc:id="40296192-9500-4011-9756-813d5f58b326" config-ref="JSON_Logger_Config" message="START Image Right Document Info GET Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="84ce9198-07a7-4fc6-8999-353a532deaee">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"GET imageRightDocumentInfo Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call imageright-doc-info-flow" doc:id="f5fe6439-7565-46f6-9496-09343d49feea" name="imageright-doc-info-flow" />
+		<json-logger:logger doc:name="Log END Image Right Document Info GET Operation" doc:id="d2188f36-eb76-457d-b251-d3bad99c1e6b" config-ref="JSON_Logger_Config" message="END Image Right Document Info GET Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="3570692c-1148-4cb1-a5ca-47935d09eb1a" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="4e47b7d6-7d63-4563-848d-f6f45a18a38d" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="501624d6-c2ee-47f1-ad32-4dbfb1d7d04e" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="get:\imageRightFroiDocumentInfo:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START FROI Image Right Document Info GET Operation" doc:id="5d3dbf49-cc85-47ea-b5fe-9e088a5b5ee3" config-ref="JSON_Logger_Config" message="START FROI Image Right Document Info GET Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    claimNum: attributes.queryParams.claimNum
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="fccc3247-8d6e-4269-8718-f6321393d1c4">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"GET imageRightFroiDocumentInfo Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call froi-imageright-doc-info-flow" doc:id="2f384a9a-7571-470b-9556-bb2edf2d983b" name="froi-imageright-doc-info-flow" />
+		<json-logger:logger doc:name="Log END FROI Image Right Document Info GET Operation" doc:id="c469da04-e690-4d95-b978-c3c81a5c116b" config-ref="JSON_Logger_Config" message="END FROI Image Right Document Info GET Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="bd30d6fb-9167-43c3-88ef-7fad5cff75fd" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="8fe8475f-c639-4c05-82f4-9c0d5ae37dba" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="f6894b77-90e1-48b0-a16e-96c7388eabc2" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="patch:\froi:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START Insert FROI Generation Request" doc:id="bc2411a9-38e0-4bca-8722-13e13aebc3f6" config-ref="JSON_Logger_Config" message="START Insert FROI Generation Request">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Capturing Variables" doc:id="199f1d1b-c9fc-4552-9271-66ff1a7cf0cc">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logReuqestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"PATCH froi Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call froi-generate-request-flow" doc:id="1962b488-f9c9-4f0e-9185-f44a13fb42d3" name="froi-generate-request-flow" />
+		<json-logger:logger doc:name="Log END Insert FROI Generation Request" doc:id="7327ef89-5ff2-406c-ae0d-49310a778431" config-ref="JSON_Logger_Config" message="END Insert FROI Generation Request" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="6aabe6d7-2b3b-46da-ae50-c8351fa860e0" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="256428d8-e6da-434e-88c8-208e8bcf7868" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="036f2572-900f-46b6-b237-bb868407644e" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="put:\claimRecord:application\json:lagniappe-sys-api-config" doc:id="4a6a000e-7435-4ebb-af69-0eefda6be617">
+        <json-logger:logger doc:name="Log START Injured Worker PUT Operation" doc:id="2e083a94-ef03-48ca-96bd-c798911a7545" config-ref="JSON_Logger_Config" message="START Injured Worker PUT Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Initial Payload" doc:id="afecb9e3-39dc-4803-9e51-64165fbd5e23">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="initialPayload"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar" ><![CDATA[%dw 2.0
+output application/json
+---
+"PUT claimRecord Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+				<ee:set-variable variableName="logRequestVar" ><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<flow-ref doc:name="Call injured-worker-claim-flow" doc:id="758686c3-34a0-4ecb-bcfe-41e6bfa9a700" name="injured-worker-claim-flow" />
+		<json-logger:logger doc:name="Log END Injured Worker PUT Operation" doc:id="a9e468b1-3690-4305-85a0-6b908ef88862" config-ref="JSON_Logger_Config" message="END Injured Worker PUT Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="59e0aab8-b657-4775-b903-ca93f947502f" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="d738d6e0-3678-439f-952b-529d877eb5e4" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="ae64d47a-f0a0-4a12-8244-873634be7673" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="patch:\claimInvestigation:application\json:lagniappe-sys-api-config">
+        <json-logger:logger doc:name="Log START Claim Investigation PATCH Operation" doc:id="85e80d76-1611-4f97-95c8-89757cf7e952" config-ref="JSON_Logger_Config" message="START Claim Investigation PATCH Operation">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+        <ee:transform doc:name="Initial Payload" doc:id="83d57b27-0dae-4b80-9b7f-9525c37b5e56">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="initialPayload"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar" ><![CDATA[%dw 2.0
+output application/json
+---
+"PATCH claimInvestigation Endpoint - lagniappe-sys-api"]]></ee:set-variable>
+				<ee:set-variable variableName="logRequestVar" ><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<flow-ref doc:name="Call claim-ivestigation-flow" doc:id="8c693883-a786-4c09-8f9f-3a674b676c5d" name="claim-ivestigation-flow" />
+		<json-logger:logger doc:name="Log END Claim Investigation PATCH Operation" doc:id="30c73596-a0f5-487f-8e1c-5721bfccf01f" config-ref="JSON_Logger_Config" message="END Claim Investigation PATCH Operation" tracePoint="END">
+            <json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+        </json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="966fb6af-80fe-401a-a4b8-5c3a354368ea" variableName="logResponseVar" />
+		<async doc:name="Async" doc:id="df64933a-4848-4f5d-ab1d-4386b13e7de0" >
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="3119ab1f-a871-47b9-ac9b-20f627f07dd8" name="create-integration-logs-subflow" />
+		</async>
+		<error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="690bf3f6-15bb-4035-ab60-979aea14b68a" type="MULE:EXPRESSION">
+                <ee:transform doc:name="Set FAILURE Response" doc:id="5611feaa-8a8e-43b3-80f3-0fc3e86b63f2">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+	"errorCode": error.errorType.asString,
+	"errorMessage": "FAILURE",
+	"errorDescription": substringBefore(error.description,"^^^^^"),
+	"transactionId": attributes.headers.'x-correlation-id',
+  	"timeStamp": now()
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+</mule>

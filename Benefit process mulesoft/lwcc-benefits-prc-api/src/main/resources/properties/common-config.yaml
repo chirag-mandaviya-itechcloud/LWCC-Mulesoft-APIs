@@ -1,0 +1,24 @@
+# JSON Logger Configurations [DO NOT DELETE - Also referenced by core-resources-lib]
+json.logger.application:           
+    name: "${project.artifactId}"
+    version: "${project.version}"
+
+#  Needed when testing in Studio and app is restarted since resources filtering in pom will not update these props.                
+project:  
+    artifactId: "${project.artifactId}"
+    version: "${project.version}"
+    name: "${project.name}"
+
+health.verbose.client.id: ""
+
+# Include environment independent properties below        
+connector:  
+    retries: "3"
+    retryIntervel: "5000"
+    response:  
+        timeout: "120000"      
+        
+query:
+ claimPayee: "select DT_Claim__r.Name,Name,Id,DT_Relationship__c,DT_Payee_Status__c,DT_Payee_Name__c,DT_Address_1__c,DT_Address_2__c,DT_City__c,DT_State__c,DT_Zip__c,DT_Phone__c,DT_Ext__c,DT_Country__c,DT_Support_Amount__c,DT_Enroll_for_Automatic_Payment__c,DT_Electronic_Payment__c, DT_Not_eligible_for_electronic_payments__c,DT_Email__c, DT_Mobile_Phone__c FROM DT_Claim_Payee__c  where id= "    
+ benefitPayee: "SELECT ID,DT_Claim__c,DT_Benefits__c FROM DT_Benefit_Payee__c where DT_Benefits__c = "
+ getClaimPayeeId: "Select DT_Claim_Payee__c from DT_Benefit_Payee__c Where Id = "

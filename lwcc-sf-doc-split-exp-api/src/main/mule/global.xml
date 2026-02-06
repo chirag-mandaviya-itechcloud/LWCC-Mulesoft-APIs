@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+      xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+      xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+        http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+        http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+
+    <!-- =====================================================
+         PROPERTY CONFIGURATIONS
+         ===================================================== -->
+
+    <!-- Global Property for default environment -->
+    <global-property
+        doc:name="mule.env-property"
+        doc:id="default-env"
+        name="mule.env"
+        value="local" />
+
+    <!-- Common base properties (environment independent) -->
+    <configuration-properties
+        doc:name="Common Properties"
+        doc:id="common-properties"
+        file="properties/common-config.yaml" />
+
+    <!-- Environment-specific properties -->
+    <configuration-properties
+        doc:name="Environment Properties"
+        doc:id="env-properties"
+        file="properties/${mule.env}-config.yaml" />
+
+    <!-- Secure properties (encrypted credentials) -->
+    <secure-properties:config
+        name="Secure_Properties_Config"
+        doc:name="Secure Properties Config"
+        doc:id="secure-properties-config"
+        file="properties/secure-${mule.env}-config.yaml"
+        key="${secure.key}">
+        <secure-properties:encrypt algorithm="AES" mode="CBC" />
+    </secure-properties:config>
+
+    <!-- =====================================================
+         HTTP LISTENER CONFIGURATION
+         ===================================================== -->
+
+    <http:listener-config
+        name="HTTP_Listener_Config"
+        doc:name="HTTP Listener Config"
+        doc:id="http-listener-config">
+        <http:listener-connection
+            host="0.0.0.0"
+            port="${http.port}" />
+    </http:listener-config>
+
+    <!-- =====================================================
+         APIKIT CONFIGURATION
+         ===================================================== -->
+
+    <apikit:config
+        name="document-split-exp-api-config"
+        doc:name="APIKit Config"
+        doc:id="apikit-config"
+        api="api/document-split-exp-api.raml"
+        outboundHeadersMapName="outboundHeaders"
+        httpStatusVarName="httpStatus" />
+
+    <!-- =====================================================
+         HTTP REQUEST CONFIGURATION (SF Doc Split System API)
+         ===================================================== -->
+
+    <http:request-config
+        name="HTTP_Request_SF_Doc_Split_Sys_API"
+        doc:name="HTTP Request - SF Doc Split Sys API"
+        doc:id="http-request-sf-doc-split"
+        basePath="${sysapi.basepath}"
+        responseTimeout="${connector.response.timeout}">
+        <http:request-connection
+            protocol="HTTPS"
+            host="${sysapi.host}"
+            port="${sysapi.port}">
+            <reconnection>
+                <reconnect
+                    frequency="${sysapi.reconnection.frequency}"
+                    count="${sysapi.reconnection.attempts}" />
+            </reconnection>
+            <tls:context>
+                <tls:trust-store insecure="true" />
+            </tls:context>
+        </http:request-connection>
+        <http:default-headers>
+            <http:default-header key="client_id" value="${secure::httpReq.sfDocSplit.clientId}" />
+            <http:default-header key="client_secret" value="${secure::httpReq.sfDocSplit.clientSecret}" />
+        </http:default-headers>
+    </http:request-config>
+
+    <!-- =====================================================
+         JSON LOGGER CONFIGURATION
+         ===================================================== -->
+
+    <json-logger:config
+        name="JSON_Logger_Config"
+        doc:name="JSON Logger Config"
+        doc:id="json-logger-config"
+        environment="${mule.env}" />
+
+    <!-- =====================================================
+         API AUTODISCOVERY CONFIGURATION
+         Enable for CloudHub deployment with valid api.id
+         ===================================================== -->
+
+    <api-gateway:autodiscovery
+        doc:name="API Autodiscovery"
+        doc:id="api-autodiscovery"
+        apiId="${api.id}"
+        ignoreBasePath="true"
+        flowRef="lwcc-sf-doc-split-exp-api-main" />
+
+    <!-- =====================================================
+         GLOBAL ERROR HANDLER REFERENCE
+         ===================================================== -->
+
+    <configuration
+        doc:name="Configuration"
+        doc:id="global-config"
+        defaultErrorHandler-ref="api-common-error-handler" />
+
+</mule>

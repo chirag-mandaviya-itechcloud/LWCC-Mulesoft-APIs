@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <!-- Update groupId -->
+	<groupId>18404cbf-4922-41d8-a8bd-e903f45d1b04</groupId>
+    <artifactId>json-logger</artifactId>
+    <version>2.2.0</version>
+    <packaging>mule-extension</packaging>
+    <name>JSON Logger - Mule 4</name>
+
+    <parent>
+        <groupId>org.mule.extensions</groupId>
+        <artifactId>mule-modules-parent</artifactId>
+        <version>1.6.0</version>
+    </parent>
+
+    <properties>
+        <mtf.javaopts></mtf.javaopts>
+        <mule.sdk.api.version>0.7.0</mule.sdk.api.version>
+        <jackson.databind.version>2.10.3</jackson.databind.version>
+        <common.lang.version>2.6</common.lang.version>
+        <common.beanutils.version>1.9.4</common.beanutils.version>
+        <joda.time.version>2.10.5</joda.time.version>
+        <lmax.disruptor.version>3.4.2</lmax.disruptor.version>
+        <json.path.version>2.4.0</json.path.version>
+        <min.mule.version>4.6.0</min.mule.version>
+        <munit.version>3.1.0</munit.version>
+        <munit.extensions.maven.plugin.version>1.2.0</munit.extensions.maven.plugin.version>
+        <mule.extensions.maven.plugin.version>1.6.0-rc1</mule.extensions.maven.plugin.version>
+        <exchange.mule.maven.plugin.version>0.0.23</exchange.mule.maven.plugin.version>
+
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jsonschema2pojo</groupId>
+                <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+                <version>0.5.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.github.mulesoft-consulting</groupId>
+                        <artifactId>jsonschema2pojo-mule-annotations</artifactId>
+                        <version>1.2.0</version>
+                        <scope>compile</scope>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <customAnnotator>org.mule.custom.annotation.utils.CustomMuleAnnotator</customAnnotator>
+                    <sourceDirectory>${basedir}/src/main/resources/schema</sourceDirectory>
+                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                    <targetPackage>org.mule.extension.jsonlogger.api.pojos</targetPackage>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.mule.tools.maven</groupId>
+                <artifactId>exchange-mule-maven-plugin</artifactId>
+                <version>${exchange.mule.maven.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exchange-pre-deploy</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>exchange-deploy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <distributionManagement>
+        <!-- Target Anypoint Organization Repository -->
+         <repository>
+            <id>Exchange2</id>
+            <name>Exchange2 Repository</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v2/organizations/${project.groupId}/maven</url>
+            <layout>default</layout>
+        </repository>
+    </distributionManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.mule.sdk</groupId>
+            <artifactId>mule-sdk-api</artifactId>
+            <version>${mule.sdk.api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.databind.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>${common.lang.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>${common.beanutils.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>${joda.time.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+            <version>${json.path.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.lmax</groupId>
+            <artifactId>disruptor</artifactId>
+            <version>${lmax.disruptor.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.mulesoft.munit</groupId>
+            <artifactId>munit-extensions-maven-plugin</artifactId>
+            <version>${munit.extensions.maven.plugin.version}</version>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+       <repository>
+            <id>Exchange2</id>
+            <name>Exchange2 Repository</name>
+			<url>https://maven.anypoint.mulesoft.com/api/v2/organizations/${project.groupId}/maven</url>
+            <layout>default</layout>
+        </repository>
+         </repositories>
+
+</project>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<salesforce:sfdc-config
+		name="Salesforce_Config_Integration" doc:name="Salesforce Config"
+		doc:id="d1a2db41-c12c-4663-9a66-7f720af1504e">
+		<salesforce:jwt-connection
+			consumerKey="${secure::sfdc.consumerkey}" keyStore="${mule.env}-jks.jks"
+			storePassword="${secure::sfdc.password}"
+			certificateAlias="${sfdc.alias}" principal="${sfdc.principal}"
+			tokenEndpoint="${sfdc.endpoint}" audienceUrl="${sfdc.audience}">
+			<reconnection>
+				<reconnect-forever frequency="5000" />
+			</reconnection>
+		</salesforce:jwt-connection>
+	</salesforce:sfdc-config>
+	<global-property doc:name="Global Property"
+		doc:id="03597d7c-4764-4b39-bbb1-641f575f74f1" name="mule.env"
+		value="dev01" />
+
+	<configuration-properties
+		doc:name="regular-env-properties"
+		doc:description="Environment specific regular properties"
+		doc:id="a14c4c5f-317e-45ac-9d48-5ae977d95e60"
+		file="properties/${mule.env}-config.yaml" />
+
+	<configuration-properties
+		doc:name="base-common-properties"
+		doc:description="Common Base Properties - Environment independent"
+		doc:id="9cfd3820-5aef-481d-858a-29e05058f5fb"
+		file="properties/common-config.yaml" />
+	<json-logger:config name="JSON_Logger_Config"
+		doc:name="JSON Logger Config"
+		doc:id="407ca382-cef7-4734-8737-fbcedb71061c"
+		environment="${mule.env}" />
+	<secure-properties:config
+		name="secure-env-properties" doc:name="Secure Environment Properties"
+		doc:id="b6d92bb7-e9c8-4052-983a-8eb593bc50e8"
+		file="properties/secure-${mule.env}-config.yaml" key="${secure.key}"
+		doc:description="Environment specific secured properties">
+	</secure-properties:config>
+	<configuration doc:name="Configuration"
+		doc:id="e6f33290-02cc-4f52-af57-28b8dab13cc9"
+		defaultErrorHandler-ref="globalError_Handler" />
+	<http:request-config
+		name="HTTP_Request_conf_claims_prc_api"
+		doc:name="HTTP Request configuration"
+		doc:id="322c56de-094a-41a2-be60-add9568ea810"
+		basePath="${claims.basepath}" responseTimeout="${connector.response.timeout}">
+		<http:request-connection host="${claims.host}"
+			port="${claims.port}" protocol="HTTPS" />
+	</http:request-config>
+	<http:request-config name="HTTP_Request_conf_int-logs-sfdc-sys-api" doc:name="HTTP Request configuration" doc:id="f8a2c4d1-9e5b-4f3a-b6c7-8d9e0f1a2b3c" basePath="${httpReq.integ.basepath}" responseTimeout="${connector.response.timeout}">
+		<http:request-connection protocol="HTTPS" host="${httpReq.integ.host}" port="${httpReq.integ.port}">
+			<tls:context>
+				<tls:trust-store insecure="true" />
+			</tls:context>
+			<reconnection>
+				<reconnect frequency="${httpReq.integ.reconnection.frequency}" count="${httpReq.integ.reconnection.attempts}" />
+			</reconnection>
+		</http:request-connection>
+	</http:request-config>
+</mule>

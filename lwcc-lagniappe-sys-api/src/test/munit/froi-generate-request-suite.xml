@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="froi-generate-request-suite.xml" />
+	<munit:test name="froi-generate-request-flow-test-failed" doc:id="837ef1a7-9b1c-4bd8-929f-522fa0c58806" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call Update FROI Indicator In Claim" doc:id="d3ca9bdd-dabe-44ff-837e-be5488101043" processor="db:stored-procedure">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="2387991a-2877-4927-aa2c-a71ca626c728" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://froigeneraterequestflowtestfailed\mock_payload.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://froigeneraterequestflowtestfailed\mock_variable_.dwl')]" />
+						<munit-tools:variable key="correlationId" value="#[output application/java --- readUrl('classpath://froigeneraterequestflowtestfailed\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="f92a7b1f-a71f-4ec8-bf01-09d6d4d6bffe" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://froigeneraterequestflowtestfailed\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://froigeneraterequestflowtestfailed\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://froigeneraterequestflowtestfailed\set-event_variable_.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/java --- readUrl('classpath://froigeneraterequestflowtestfailed\set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to froi-generate-request-flow" doc:id="18865656-4c8f-4d58-8817-045b5f23c763" name="froi-generate-request-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="9f669fea-c85e-478e-9dc5-2977323a4e7d" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import froigeneraterequestflowtestfailed::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Build Server Error Response" doc:id="1fcb947a-bc53-478a-81a9-47a07ca88b99" processor="ee:transform" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="9d3d8336-c484-4200-9633-3529cd54d017" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="froi-generate-request-flow-test-success" doc:id="b98f0187-1e8f-4547-be64-1adba12f65a6" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call Update FROI Indicator In Claim" doc:id="b23a2101-0b8a-4420-80dd-ad1be3518e09" processor="db:stored-procedure">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="2387991a-2877-4927-aa2c-a71ca626c728" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://froigeneraterequestflowtestsuccess\mock_payload.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://froigeneraterequestflowtestsuccess\mock_variable_.dwl')]" />
+						<munit-tools:variable key="correlationId" value="#[output application/java --- readUrl('classpath://froigeneraterequestflowtestsuccess\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="409a5fd7-4689-4d7d-9e5e-d0b88a48147a" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://froigeneraterequestflowtestsuccess\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://froigeneraterequestflowtestsuccess\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://froigeneraterequestflowtestsuccess\set-event_variable_.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/java --- readUrl('classpath://froigeneraterequestflowtestsuccess\set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to froi-generate-request-flow" doc:id="3505123d-d425-43f9-8f1b-e61095837b10" name="froi-generate-request-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="2318f947-72f3-4b93-8589-ca68674dd75f" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import froigeneraterequestflowtestsuccess::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Build Ok Response" doc:id="4f629f35-6e59-46a4-a912-ba1af70861c7" processor="ee:transform" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3faab590-ff76-4e3e-afbf-1abf1a4a5281" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

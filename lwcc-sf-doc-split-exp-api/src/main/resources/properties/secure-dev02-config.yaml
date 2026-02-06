@@ -1,0 +1,13 @@
+# ============================================
+# SECURE PROPERTIES - DEV02 Environment
+# lwcc-sf-doc-split-exp-api
+# ============================================
+# Encrypt values using: java -jar secure-properties-tool.jar
+# Key should be provided via -Dsecure.key at runtime
+
+# HTTP Request credentials for downstream System API
+# Encrypted using Blowfish with secure.key
+httpReq:
+  sfDocSplit:
+    clientId: "![86FbyQt1iNRVnfuRlvHrUOW9F6IfvfRLVwOGHZyj7uo=]"
+    clientSecret: "![MTBTZ5yiGrthBc+5o3nQta84dCmF07xl1lqOLY1gr4YzblSJobzboUpc1klM7opdN18oXiQs2KokiLqN0iCZ2yEPBsPlagdO1CjLWyj8qeY=]"

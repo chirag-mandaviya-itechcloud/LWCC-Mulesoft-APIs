@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+
+    <!-- =====================================================
+         GLOBAL ERROR HANDLER
+         Standardized to organization format
+         ===================================================== -->
+
+    <error-handler name="api-common-error-handler" doc:id="api-common-error-handler">
+
+        <!-- =====================================================
+             APIKIT ERRORS
+             ===================================================== -->
+
+        <!-- Bad Request (400) -->
+        <on-error-propagate type="APIKIT:BAD_REQUEST" doc:name="On Error - Bad Request" doc:id="error-bad-request">
+            <ee:transform doc:name="Build 400 Response" doc:id="transform-400">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    errorCode: "BAD_REQUEST",
+    errorMessage: "FAILURE",
+    errorDescription: "Invalid request" ++ (if (error.description != null) (" - " ++ error.description) else ""),
+    transactionId: vars.correlationId default correlationId,
+    timeStamp: now()
+}]]></ee:set-payload>
+                </ee:message>
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref doc:name="Log Error" doc:id="log-error-400" name="error-logging-subflow" />
+        </on-error-propagate>
+
+        <!-- Not Found (404) -->
+        <on-error-propagate type="APIKIT:NOT_FOUND" doc:name="On Error - Not Found" doc:id="error-not-found">
+            <ee:transform doc:name="Build 404 Response" doc:id="transform-404">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    errorCode: "NOT_FOUND",
+    errorMessage: "FAILURE",
+    errorDescription: "Resource not found",
+    transactionId: vars.correlationId default correlationId,
+    timeStamp: now()
+}]]></ee:set-payload>
+                </ee:message>
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref doc:name="Log Error" doc:id="log-error-404" name="error-logging-subflow" />
+        </on-error-propagate>
+
+        <!-- Method Not Allowed (405) -->
+        <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED" doc:name="On Error - Method Not Allowed" doc:id="error-method-not-allowed">
+            <ee:transform doc:name="Build 405 Response" doc:id="transform-405">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    errorCode: "METHOD_NOT_ALLOWED",
+    errorMessage: "FAILURE",
+    errorDescription: "Method not allowed",
+    transactionId: vars.correlationId default correlationId,
+    timeStamp: now()
+}]]></ee:set-payload>
+                </ee:message>
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus"><![CDATA[405]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref doc:name="Log Error" doc:id="log-error-405" name="error-logging-subflow" />
+        </on-error-propagate>
+
+        <!-- Not Acceptable (406) -->
+        <on-error-propagate type="APIKIT:NOT_ACCEPTABLE" doc:name="On Error - Not Acceptable" doc:id="error-not-acceptable">
+            <ee:transform doc:name="Build 406 Response" doc:id="transform-406">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    errorCode: "NOT_ACCEPTABLE",
+    errorMessage: "FAILURE",
+    errorDescription: "Not acceptable",
+    transactionId: vars.correlationId default correlationId,
+    timeStamp: now()
+}]]></ee:set-payload>
+                </ee:message>
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus"><![CDATA[406]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref doc:name="Log Error" doc:id="log-error-406" name="error-logging-subflow" />
+        </on-error-propagate>
+
+        <!-- Unsupported Media Type (415) -->
+        <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE" doc:name="On Error - Unsupported Media Type" doc:id="error-unsupported-media">
+            <ee:transform doc:name="Build 415 Response" doc:id="transform-415">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    errorCode: "UNSUPPORTED_MEDIA_TYPE",
+    errorMessage: "FAILURE",
+    errorDescription: "Unsupported media type",
+    transactionId: vars.correlationId default correlationId,
+    timeStamp: now()
+}]]></ee:set-payload>
+                </ee:message>
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus"><![CDATA[415]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref doc:name="Log Error" doc:id="log-error-415" name="error-logging-subflow" />
+        </on-error-propagate>
+
+        <!-- Not Implemented (501) -->
+        <on-error-propagate type="APIKIT:NOT_IMPLEMENTED" doc:name="On Error - Not Implemented" doc:id="error-not-implemented">
+            <ee:transform doc:name="Build 501 Response" doc:id="transform-501">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    errorCode: "NOT_IMPLEMENTED",
+    errorMessage: "FAILURE",
+    errorDescription: "Not implemented",
+    transactionId: vars.correlationId default correlationId,
+    timeStamp: now()
+}]]></ee:set-payload>
+                </ee:message>
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus"><![CDATA[501]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref doc:name="Log Error" doc:id="log-error-501" name="error-logging-subflow" />
+        </on-error-propagate>
+
+        <!-- =====================================================
+             CATCH-ALL ERROR HANDLER
+             ===================================================== -->
+
+        <on-error-propagate type="ANY" doc:name="On Error - Any" doc:id="error-any" enableNotifications="true" logException="true">
+            <ee:transform doc:name="Build 500 Response" doc:id="transform-500">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    errorCode: error.errorType.identifier default "INTERNAL_ERROR",
+    errorMessage: "FAILURE",
+    errorDescription: error.description default "An unexpected error occurred",
+    transactionId: vars.correlationId default correlationId,
+    timeStamp: now()
+}]]></ee:set-payload>
+                </ee:message>
+                <ee:variables>
+                    <ee:set-variable variableName="httpStatus"><![CDATA[500]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref doc:name="Log Error" doc:id="log-error-any" name="error-logging-subflow" />
+        </on-error-propagate>
+
+    </error-handler>
+
+    <!-- =====================================================
+         ERROR LOGGING SUBFLOW
+         ===================================================== -->
+
+    <sub-flow name="error-logging-subflow" doc:id="error-logging-subflow">
+        <json-logger:logger
+            doc:name="Log Error"
+            doc:id="json-log-error"
+            config-ref="JSON_Logger_Config"
+            message="ERROR"
+            tracePoint="EXCEPTION"
+            priority="ERROR">
+            <json-logger:content><![CDATA[#[output application/json
+---
+{
+    correlationId: vars.correlationId default correlationId,
+    errorCode: payload.errorCode default "UNKNOWN",
+    errorMessage: payload.errorDescription default "Unknown error",
+    httpStatus: vars.httpStatus default 500
+}]]]></json-logger:content>
+        </json-logger:logger>
+    </sub-flow>
+
+</mule>

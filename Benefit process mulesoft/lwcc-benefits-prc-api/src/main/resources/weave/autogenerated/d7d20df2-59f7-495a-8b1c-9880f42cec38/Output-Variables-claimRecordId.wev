@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_d7d20df2_59f7_495a_8b1c_9880f42cec38_Output_Variables_claimRecordId = Any
+

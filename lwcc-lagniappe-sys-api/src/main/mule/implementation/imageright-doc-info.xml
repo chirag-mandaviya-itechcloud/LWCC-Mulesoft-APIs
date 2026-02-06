@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="imageright-doc-info-flow" doc:id="5ca05637-71bf-4791-be94-d965037d63d8" >
+		<ee:transform doc:name="Map transactionType into v_drawer value in the SP" doc:id="0eb98bb9-d269-49d5-878c-fd6eafccfc2e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	transactionType: 
+	attributes.queryParams.transactionType match {
+		case "Claim" -> "CLMS"
+		case "Policy" -> "PHS"
+		case "AGCY" -> "AGCY"
+		else -> ""
+	},
+	transactionNum : attributes.queryParams.transactionNum
+}
+]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="correlationId" ><![CDATA[message.attributes.headers.'x-correlation-id']]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger doc:name="Log BEFORE Call Get File Url SP" doc:id="e84ae43b-2fb8-4fa2-be2e-1af3d72274b4" config-ref="JSON_Logger_Config" message="BEFORE Call Get File Url SP pkg_ir_utils.p_get_file_url " tracePoint="BEFORE_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="d11ed403-000e-4f3e-95f9-7094422078f2" >
+			<db:stored-procedure doc:name="Call Get File Url SP" doc:id="f894dd76-05f5-4723-98c1-74c49bfabc98" config-ref="Database_Config" queryTimeout="30000" queryTimeoutUnit="MILLISECONDS">
+			<db:sql><![CDATA[{ call pkg_ir_utils.p_get_file_url(:v_drawer,:v_filenumber,:v_ir_url,:arec_intf_err_rec) }]]></db:sql>
+			<db:input-parameters><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	"v_drawer" : payload.transactionType, 
+	"v_filenumber" : payload.transactionNum
+}]]]></db:input-parameters>
+			<db:output-parameters>
+				<db:output-parameter key="v_ir_url" type="VARCHAR" />
+				<db:output-parameter key="arec_intf_err_rec" customType="PKG_IR_UTILS.INTF_ERR_REC" />
+			</db:output-parameters>
+		</db:stored-procedure>
+		</until-successful>
+		<json-logger:logger doc:name="Log AFTER Call Get File Url SP" doc:id="db59f574-e335-4015-b53f-c385e7c7aa46" config-ref="JSON_Logger_Config" message="AFTER Call Get File Url SP pkg_ir_utils.p_get_file_url " tracePoint="AFTER_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="6064408f-e141-4aa6-a254-494b49bb1b5e" >
+			<!-- <when expression="#[payload.arec_intf_err_rec[0] == -1]">
+				<ee:transform doc:name="Set Internal Server Error Payload" doc:id="610d0938-ee45-459d-bec9-98dd5824ee38" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+-&#45;&#45;
+{
+  "errorCode": "INTERNAL_SERVER_ERROR",
+  "errorMessage": "The server encountered an unexpected condition which prevented it from fulfilling the request.",
+  "transactionId": vars.correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when> -->
+			<when expression="#[payload.arec_intf_err_rec[0] == -1]">
+				<ee:transform doc:name="Set Not found Payload" doc:id="c4f21dec-775b-4d2b-ab49-30519a7ad35e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "NOT_FOUND",
+  "errorMessage": "The server has not found anything matching the Requested URI",
+  "transactionId": vars.correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[404]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Build documentURL Response" doc:id="9f1b664c-1618-4d93-af6f-a1326bbcb70a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	documentURL : payload.v_ir_url
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+		http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+		http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+		http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+		http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<!-- ============================================== -->
+	<!-- GLOBAL CONFIGURATION                           -->
+	<!-- Set default error handler for all flows        -->
+	<!-- ============================================== -->
+	<configuration defaultErrorHandler-ref="api-common-error-handler" />
+
+	<!-- ============================================== -->
+	<!-- CONFIGURATION PROPERTIES                       -->
+	<!-- ============================================== -->
+	<!-- Common properties (environment-independent) -->
+	<configuration-properties doc:name="Common Properties"
+		doc:id="common-properties"
+		file="properties/common-config.yaml" />
+
+	<!-- Regular environment properties -->
+	<configuration-properties doc:name="Environment Properties"
+		doc:id="env-properties"
+		file="properties/${mule.env}-config.yaml" />
+
+	<!-- Secure encrypted properties -->
+	<secure-properties:config name="secure-env-properties"
+		doc:name="Secure Environment Properties"
+		doc:id="secure-env-properties"
+		file="properties/secure-${mule.env}-config.yaml"
+		key="${secure.key}">
+		<secure-properties:encrypt algorithm="AES" mode="CBC" />
+	</secure-properties:config>
+
+	<!-- Global property for default environment -->
+	<global-property doc:name="Global Property"
+		doc:id="global-mule-env"
+		name="mule.env"
+		value="dev01" />
+
+	<!-- ============================================== -->
+	<!-- HTTP LISTENER CONFIGURATION                    -->
+	<!-- ============================================== -->
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config"
+		doc:id="http-listener-config">
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+
+	<!-- ============================================== -->
+	<!-- APIKIT CONFIGURATION                           -->
+	<!-- ============================================== -->
+	<apikit:config name="sf-doc-split-api-config"
+		doc:name="APIkit Config"
+		doc:id="apikit-config"
+		api="api/lwcc-sf-doc-split-sys-api.raml"
+		raml="api/lwcc-sf-doc-split-sys-api.raml"
+		outboundHeadersMapName="outboundHeaders"
+		httpStatusVarName="httpStatus" />
+
+	<!-- ============================================== -->
+	<!-- SALESFORCE CONNECTOR CONFIGURATION             -->
+	<!-- Using JWT Bearer Token Authentication          -->
+	<!-- ============================================== -->
+	<salesforce:sfdc-config name="Salesforce_Config"
+		doc:name="Salesforce Config"
+		doc:id="salesforce-config">
+		<salesforce:jwt-connection
+			consumerKey="${secure::sfdc.consumerkey}"
+			keyStore="${mule.env}-jks.jks"
+			storePassword="${secure::sfdc.password}"
+			certificateAlias="${sfdc.alias}"
+			principal="${sfdc.principal}"
+			tokenEndpoint="${sfdc.endpoint}"
+			audienceUrl="${sfdc.audience}">
+			<reconnection>
+				<reconnect />
+			</reconnection>
+		</salesforce:jwt-connection>
+	</salesforce:sfdc-config>
+
+	<!-- ============================================== -->
+	<!-- OBJECT STORE CONFIGURATION                     -->
+	<!-- For Idempotency and Job State Storage          -->
+	<!-- ============================================== -->
+	<os:object-store name="Idempotency_Object_Store"
+		doc:name="Idempotency Object Store"
+		doc:id="idempotency-os"
+		persistent="true"
+		maxEntries="10000"
+		entryTtl="86400000"
+		entryTtlUnit="MILLISECONDS" />
+
+	<os:object-store name="Jobs_Object_Store"
+		doc:name="Jobs Object Store"
+		doc:id="jobs-os"
+		persistent="true"
+		maxEntries="5000"
+		entryTtl="604800000"
+		entryTtlUnit="MILLISECONDS" />
+
+	<!-- Object Store for Failed Callbacks -->
+	<os:object-store name="Failed_Callbacks_Store"
+		doc:name="Failed Callbacks Store"
+		doc:id="failed-callbacks-os"
+		persistent="true"
+		maxEntries="1000"
+		entryTtl="604800000"
+		entryTtlUnit="MILLISECONDS" />
+
+	<os:config name="ObjectStore_Config"
+		doc:name="ObjectStore Config"
+		doc:id="os-config" />
+
+	<!-- ============================================== -->
+	<!-- VM CONNECTOR CONFIGURATION                     -->
+	<!-- For Async Job Processing Queue                 -->
+	<!-- ============================================== -->
+	<vm:config name="VM_Config"
+		doc:name="VM Config"
+		doc:id="vm-config">
+		<vm:queues>
+			<vm:queue queueName="split-job-queue"
+				queueType="PERSISTENT"
+				maxOutstandingMessages="100" />
+		</vm:queues>
+	</vm:config>
+
+	<!-- ============================================== -->
+	<!-- FILE CONNECTOR CONFIGURATION                   -->
+	<!-- For Temporary PDF Storage                      -->
+	<!-- ============================================== -->
+	<file:config name="File_Config"
+		doc:name="File Config"
+		doc:id="file-config">
+		<file:connection workingDir="${mule.home}/temp/pdf-split" />
+	</file:config>
+
+	<!-- ============================================== -->
+	<!-- HTTP REQUEST CONFIGURATION                     -->
+	<!-- For Callback Webhooks                          -->
+	<!-- ============================================== -->
+	<http:request-config name="HTTP_Request_config"
+		doc:name="HTTP Request config"
+		doc:id="http-request-config"
+		responseTimeout="30000">
+		<http:request-connection protocol="HTTPS">
+			<reconnection>
+				<reconnect frequency="1000" count="3" />
+			</reconnection>
+		</http:request-connection>
+	</http:request-config>
+
+	<!-- ============================================== -->
+	<!-- SALESFORCE REST API HTTP REQUEST CONFIG        -->
+	<!-- For downloading file content via REST API      -->
+	<!-- ============================================== -->
+	<http:request-config name="Salesforce_REST_Request_config"
+		doc:name="Salesforce REST Request config"
+		doc:id="sf-rest-request-config"
+		responseTimeout="600000">
+		<http:request-connection protocol="HTTPS">
+			<reconnection>
+				<reconnect frequency="2000" count="5" />
+			</reconnection>
+		</http:request-connection>
+	</http:request-config>
+
+	<!-- ============================================== -->
+	<!-- JSON LOGGER CONFIGURATION                      -->
+	<!-- ============================================== -->
+	<json-logger:config
+		name="JSON_Logger_Config"
+		doc:name="JSON Logger Config"
+		doc:id="json-logger-config"
+		environment="${mule.env}"
+		contentFieldsDataMasking="$.payload..ssn,$.payload..socialSecurityNumber,$.payload..SSN,$.payload..email,$.payload..Email,$.payload..emailAddress,$.payload..phone,$.payload..Phone,$.payload..phoneNumber,$.payload..mobilePhone,$.payload..password,$.payload..Password,$.payload..secret,$.payload..token,$.payload..accessToken,$.payload..refreshToken,$.payload..apiKey,$.payload..authorization,$.payload..Authorization,$.payload..dateOfBirth,$.payload..dob,$.payload..DOB,$.payload..driversLicense,$.payload..bankAccount,$.payload..creditCard,$.payload..taxId" />
+
+	<!-- ============================================== -->
+	<!-- GLOBAL ERROR HANDLER REFERENCE                 -->
+	<!-- ============================================== -->
+	<!-- Error handler defined in error-handler.xml -->
+
+</mule>

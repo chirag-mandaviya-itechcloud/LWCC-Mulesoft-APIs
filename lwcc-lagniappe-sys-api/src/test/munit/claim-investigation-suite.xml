@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="claim-investigation-suite.xml" />
+	<munit:test name="claim-ivestigation-flow-test" doc:id="ce1d2b42-30f1-4831-933c-6c159eed8d12" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call Claim Investigation SP" doc:id="33eee760-d7cb-400f-9e3f-55785d0f2ebc" processor="db:stored-procedure">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f186e731-fadf-45c9-8737-2123a9e4762a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/java  --- readUrl('classpath://claimivestigationflowtest\mock_payload.dwl')]" mediaType="application/java " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="in_clm_init_cntc_comnt_tbl" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_iw_fol_up_rec" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_cntc_comnt_tbl" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_2.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_plcy_hldr_rec" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_3.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_invst_typ" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_4.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://claimivestigationflowtest\mock_variable_5.dwl')]" />
+						<munit-tools:variable key="in_clm_inv_plcy_hldr_folup_rec" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_6.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="initialPayload" value="#[output application/json --- readUrl('classpath://claimivestigationflowtest\mock_variable_7.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_iw_rec" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_8.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_phy_rec" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_9.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_10.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_iw_rspn_tbl" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\mock_variable_11.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="dc852e83-90d0-40bd-9674-b0c00eaff5fa" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://claimivestigationflowtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://claimivestigationflowtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://claimivestigationflowtest\set-event_variable_.dwl')]" />
+					<munit:variable key="initialPayload" value="#[output application/json --- readUrl('classpath://claimivestigationflowtest\set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/json" />
+					<munit:variable key="correlationId" value="#[output application/java --- readUrl('classpath://claimivestigationflowtest\set-event_variable_2.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to claim-ivestigation-flow" doc:id="924c6cdd-5c2e-4c70-87ba-a5b88a2303c4" name="claim-ivestigation-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="ac92082b-8bc0-4370-ae41-8a039028f2fb" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import claimivestigationflowtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Set Success 201 Response" doc:id="982dc8a7-fc1f-4773-8458-799ce8abd7ed" processor="ee:transform" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="931afd01-3e62-4368-87aa-47cf12f8cf6e" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

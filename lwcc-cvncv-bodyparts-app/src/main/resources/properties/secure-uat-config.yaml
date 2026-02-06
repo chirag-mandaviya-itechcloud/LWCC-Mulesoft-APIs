@@ -1,0 +1,15 @@
+sfdc:
+  password: "![1jdaNjbjOM88lF8MZuREKQ==]"
+  consumerkey: "![iTbq4RULjhxH8wf+n12f2l0eIH3x/i3zbK1+3HnVD6OWlv03cwsL/cgzczSapnF2uD1Cu74ptwzcJmHHObCPgelsAkeQMG3hjQgcaPPaPuCEAvP+p/p7kf5+JMbi4N/9]"
+  
+httpReq:
+    claims:
+        clientId: "![4VF+hLK8AzMGaIrCH6MoFuf2XYkrHsrt6yX3Cpwk9uQ=]"
+        clientSecret: "![OnLMc6gIKqm6a52JdeImoUCz0AvfYH2mUKQGowZyQ0j5mmxjy9rPeaKqae9etR3yKp5NuRfmEA/aDqJ1Cpkznb2oR6EdvFR7vSsFGEmKuNU=]"
+    integ:
+        clientId: "![cM96hXd6Zg0WqQAT5N488uO9HAO8fyH7zV0JE7dCaXc=]"
+        clientSecret: "![/T79jBxPKDg4E5YVFVeMzmGbOuvoP8w1/dw8wcL6Et0++l+ZRkonGP7gkpp9hkZhDxNuVMX2RuY85/Qh7rMfyFAP1M0W/tjPLo1eArSEWHQ=]"
+
+mq:
+  client_id: "![SSDFcKcY6k9y0/3VRgaPlP1vyiLkf3/OdRmXY1AxcjrAZOYuiBhAuuiad2yeKhqr]"
+  client_secret: "![3V6smMuHMyf7jDoa7WoybnuH+XUNKP8SPS6tPatkUBXoSCPz0BWTsJEfOfFG+yrA]"

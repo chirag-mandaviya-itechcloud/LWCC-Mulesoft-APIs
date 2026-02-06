@@ -1,0 +1,106 @@
+#%RAML 1.0 DataType
+
+displayName: Health Response
+description: Health check response containing service status and dependency health
+
+type: object
+properties:
+  status:
+    type: string
+    enum: [healthy, degraded, unhealthy]
+    description: |
+      Overall health status of the service.
+      - `healthy` - All systems operational
+      - `degraded` - Service operational but with issues
+      - `unhealthy` - Service is not operational
+    example: healthy
+  version:
+    type: string
+    description: API version
+    example: "1.0.0"
+  timestamp:
+    type: datetime
+    description: Timestamp of the health check (ISO 8601 format)
+    example: 2026-01-20T14:30:00+05:30
+  uptime:
+    type: string
+    description: Service uptime in human-readable format
+    required: false
+    example: "2d 14h 32m"
+  uptimeSeconds:
+    type: integer
+    description: Service uptime in seconds
+    required: false
+    example: 225120
+  dependencies:
+    type: object
+    description: Health status of dependencies (only included with detail=full)
+    required: false
+    properties:
+      salesforce:
+        type: object
+        properties:
+          status:
+            type: string
+            enum: [healthy, degraded, unhealthy]
+          latencyMs:
+            type: integer
+            description: Last measured latency in milliseconds
+          lastChecked:
+            type: datetime
+          message:
+            type: string
+            required: false
+      objectStore:
+        type: object
+        properties:
+          status:
+            type: string
+            enum: [healthy, degraded, unhealthy]
+          latencyMs:
+            type: integer
+          lastChecked:
+            type: datetime
+          message:
+            type: string
+            required: false
+      jobQueue:
+        type: object
+        properties:
+          status:
+            type: string
+            enum: [healthy, degraded, unhealthy]
+          pendingJobs:
+            type: integer
+            description: Number of jobs waiting in queue
+          activeWorkers:
+            type: integer
+            description: Number of active worker threads
+          lastChecked:
+            type: datetime
+          message:
+            type: string
+            required: false
+  metrics:
+    type: object
+    description: Service metrics (only included with detail=full)
+    required: false
+    properties:
+      requestsTotal:
+        type: integer
+        description: Total requests since startup
+      requestsPerMinute:
+        type: number
+        description: Current request rate
+      errorRate:
+        type: number
+        description: Error rate percentage (last 5 minutes)
+      avgResponseTimeMs:
+        type: integer
+        description: Average response time (last 5 minutes)
+      activeJobs:
+        type: integer
+        description: Currently processing jobs
+      completedJobsTotal:
+        type: integer
+        description: Total completed jobs since startup

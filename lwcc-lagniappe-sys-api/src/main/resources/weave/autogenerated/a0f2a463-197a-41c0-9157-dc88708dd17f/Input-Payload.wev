@@ -1,0 +1,15 @@
+%dw 2.0
+
+type auto_a0f2a463_197a_41c0_9157_dc88708dd17f_Input_Payload = {
+  side: "Left" | "Right" | "Bi-lateral", 
+  lastModifiedDate: String, 
+  sfRecordId: String, 
+  lastModifiedById: String, 
+  dtStatus: "Non-covered" | "Covered", 
+  lgappClaimNum: String, 
+  bodyPartCode: String, 
+  operation: "Delete" | "Create" | "Update", 
+  bodyPart: String, 
+  _?: Any
+}
+

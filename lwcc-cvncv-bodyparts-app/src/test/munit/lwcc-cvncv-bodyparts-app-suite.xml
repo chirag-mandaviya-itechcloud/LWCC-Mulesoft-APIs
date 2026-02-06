@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="lwcc-cvncv-bodyparts-app-suite.xml" />
+	<munit:test name="lwcc-cvncv-bodyparts-app-flow-test" doc:id="43fc2440-4858-459f-8410-bd8a1a6823ce" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call cvncv-bodyparts-app-impl-flow" doc:id="19f4b047-cd43-4961-8fd4-45fe14104a66" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="539b8a1d-5602-42fd-80e8-3022b19539ec" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://lwcccvncvbodypartsappflowtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:attributes value="#[readUrl('classpath://lwcccvncvbodypartsappflowtest\mock_attributes.dwl')]" />
+					<munit-tools:variables >
+						<munit-tools:variable key="reqmethod" value="#[output application/java --- readUrl('classpath://lwcccvncvbodypartsappflowtest\mock_variable_.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="a9619d83-0e4a-4a46-991d-713c1a999a32" >
+				<munit:payload value="#[readUrl('classpath://lwcccvncvbodypartsappflowtest\set-event_payload.dwl')]" encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://lwcccvncvbodypartsappflowtest\set-event_attributes.dwl')]" />
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to lwcc-cvncv-bodyparts-app-flow" doc:id="c538d025-af40-417b-8402-778f0bb2f0a7" name="lwcc-cvncv-bodyparts-app-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="daa3d459-23b6-42d8-8ed8-cefca91064ac" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import lwcccvncvbodypartsappflowtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END Processing CovNonCov Bodypart Event" doc:id="69afc1d4-11ed-4d3c-b81b-49088f1bd2fe" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="34762b29-7b54-4833-be08-758b0230d690" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

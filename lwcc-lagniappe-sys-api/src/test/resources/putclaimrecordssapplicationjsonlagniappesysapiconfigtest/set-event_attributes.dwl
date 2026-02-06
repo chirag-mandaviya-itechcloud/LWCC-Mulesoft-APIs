@@ -1,0 +1,41 @@
+{
+  "headers": {
+    "host": "localhost:8081",
+    "connection": "keep-alive",
+    "content-length": "253",
+    "sec-ch-ua": "\"Google Chrome\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "client_id": "1a3rfe496jfkms49402srr93",
+    "sec-ch-ua-mobile": "?0",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "client_secret": "7o9der492wklsmnxcvrt48f1",
+    "content-type": "application/json",
+    "accept": "*/*",
+    "origin": "http://localhost:8081",
+    "sec-fetch-site": "same-origin",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-dest": "empty",
+    "referer": "http://localhost:8081/console/",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9"
+  },
+  "clientCertificate": null,
+  "method": "PUT",
+  "scheme": "http",
+  "queryParams": {
+    "sfRecordId": "960a",
+    "lgappClaimNum": "960b"
+  },
+  "requestUri": "/api/claimRecord",
+  "queryString": "sfRecordId=960a&lgappClaimNum=960b",
+  "version": "HTTP/1.1",
+  "maskedRequestPath": "/claimRecord",
+  "listenerPath": "/api/*",
+  "localAddress": "/127.0.0.1:8081",
+  "relativePath": "/api/claimRecord",
+  "uriParams": {},
+  "rawRequestUri": "/api/claimRecord",
+  "rawRequestPath": "/api/claimRecord",
+  "remoteAddress": "/127.0.0.1:61364",
+  "requestPath": "/api/claimRecord"
+}

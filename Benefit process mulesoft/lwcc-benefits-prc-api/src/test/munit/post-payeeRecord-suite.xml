@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="post-payeeRecord-suite.xml" />
+	<munit:test name="post-payeesRecord-Sub-Flow-test" doc:id="6555d19a-1ae0-4195-9850-c420632b9f12" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock get-claims-sub-flow" doc:id="40d61d93-a7c3-4375-be19-4c2adeb11dee" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="5eada999-a21a-4a76-98e4-89cda51df8cd" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_payload.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:attributes value="#[readUrl('classpath://postpayeesRecordSubFlowtest/mock_attributes.dwl')]" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_.dwl')]" />
+						<munit-tools:variable key="benefitRecordId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_1.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="payeeRecordId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_2.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="claimRecordId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_3.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="getClaims" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_4.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_5.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock get-benefits-sub-flow" doc:id="312794f7-ed60-4436-b3b6-55ae77cb373d" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET /benefit SFDC FIN System API Request" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="50e49e38-fa29-4f2f-b01d-16d146cfa70d" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_payload1.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:attributes value="#[readUrl('classpath://postpayeesRecordSubFlowtest/mock_attributes1.dwl')]" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_6.dwl')]" />
+						<munit-tools:variable key="getBenefit" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_7.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="payeeRecordId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_8.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="benefitRecordId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_9.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="claimRecordId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_10.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="getClaims" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_11.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/mock_variable_12.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock get-payees-sub-flow" doc:id="caa0f1ff-bdc5-4e3b-9320-c6c6d2b5a680" processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="2d7e0500-d277-4e71-b415-618a1e776405" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://putbenefitRecordSubFlowtest/mock_payload1.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:attributes value="#[readUrl('classpath://putbenefitRecordSubFlowtest/mock_attributes1.dwl')]" />
+					<munit-tools:variables>
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://putbenefitRecordSubFlowtest/mock_variable_9.dwl')]" />
+						<munit-tools:variable key="getPayees" value="#[output application/json --- readUrl('classpath://putbenefitRecordSubFlowtest/mock_variable_10.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="payeeRecordId" value="#[output application/json --- readUrl('classpath://putbenefitRecordSubFlowtest/mock_variable_11.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="benefitRecordId" value="#[output application/json --- readUrl('classpath://putbenefitRecordSubFlowtest/mock_variable_12.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="payeeRecord" value="#[output application/java --- readUrl('classpath://putbenefitRecordSubFlowtest/mock_variable_13.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="claimRecordId" value="#[output application/json --- readUrl('classpath://putbenefitRecordSubFlowtest/mock_variable_14.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/json --- readUrl('classpath://putbenefitRecordSubFlowtest/mock_variable_15.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock patch Benefits" doc:id="f1d51f05-7f36-4a46-ace0-bbf9b488edf6" processor="http:request">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="${httpReq.lagniappe.fin.patchMethod}" attributeName="method" />
+					<munit-tools:with-attribute whereValue="Patch /benefits   System API Request" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="fc968cef-e408-4882-843f-b37cd7e660a2" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://postpayeesRecordSubFlowtest/set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://postpayeesRecordSubFlowtest/set-event_variable_.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/json --- readUrl('classpath://postpayeesRecordSubFlowtest/set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to post-payeesRecord-Sub-Flow" doc:id="d6af64af-da6e-4b83-a158-e7efe14611c0" name="post-payees-record-sub-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify Prepare payload for lagniappe" doc:id="42be518b-3128-40e7-88fd-ab1475ba23ab" processor="ee:transform" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="26057aa3-288e-4588-8957-5687d3ae8310" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+</mule>

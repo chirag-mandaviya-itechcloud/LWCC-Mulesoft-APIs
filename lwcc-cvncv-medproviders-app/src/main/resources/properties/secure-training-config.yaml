@@ -1,0 +1,8 @@
+sfdc:
+  password: "![J7Tl8CVy4ZadPWy6VN4e5A==]"
+  consumerkey: "![iTbq4RULjhxH8wf+n12f2qm/xZ5eyJHP2Hb8E61aRsZMePazhw5xxxAepN51swuVC3NJYXUXC4cdEY0GfB4J9onsjfz279V+7vTrivDCwh6lSfLkW8jOtvQFOTadFwpY]"
+  
+httpReq: 
+    claims:   
+        clientId: "![aeJBxfM3Eifr5Oe66RCPbepkvOa5DKw6SstyY4yDDB0=]"
+        clientSecret: "![XMi51oAkxkeDcwyUen+3lcAiGetbUIXixQgJ4moD2aYPC69k8vKSKyLBH5htUG7BsKeAg9sTqCv57DSvCRTk7P22yGyWBsLaO/pZX48e6dI=]"

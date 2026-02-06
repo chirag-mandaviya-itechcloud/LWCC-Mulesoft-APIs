@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension-documentation>
+    <configs>
+        <config name="config">
+            <description><![CDATA[Default configuration]]></description>
+            <parameters>
+                <parameter name="name">
+                    <description><![CDATA[The identifier of this element used to reference it in other components]]></description>
+                </parameter>
+            </parameters>
+        </config>
+    </configs>
+    <connections/>
+    <extension name="MUnit Tools">
+        <description><![CDATA[]]></description>
+        <parameters/>
+    </extension>
+    <operations>
+        <operation name="assert">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="that">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="message">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="assertEquals">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="actual">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="expected">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="message">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="assertThat">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="expression">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="is">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="message">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="clearStoredData">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="dequeue">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="queueName">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="timeout">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="timeoutUnit">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="target">
+                    <description><![CDATA[The name of a variable on which the operation's output will be placed]]></description>
+                </parameter>
+                <parameter name="targetValue">
+                    <description><![CDATA[An expression that will be evaluated against the operation's output and the outcome of that expression will be stored in the target variable]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="fail">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="message">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="mockWhen">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="processor">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="withAttributes">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="thenReturn">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="thenCall">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="queue">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="value">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="queueName">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="remove">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="key">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="target">
+                    <description><![CDATA[The name of a variable on which the operation's output will be placed]]></description>
+                </parameter>
+                <parameter name="targetValue">
+                    <description><![CDATA[An expression that will be evaluated against the operation's output and the outcome of that expression will be stored in the target variable]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="retrieve">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="key">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="target">
+                    <description><![CDATA[The name of a variable on which the operation's output will be placed]]></description>
+                </parameter>
+                <parameter name="targetValue">
+                    <description><![CDATA[An expression that will be evaluated against the operation's output and the outcome of that expression will be stored in the target variable]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="runCustom">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="assertion">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="expression">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="params">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="sleep">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="time">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="timeUnit">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="store">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="key">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="value">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="failIfPresent">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="store-oauth-token">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="accessToken">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="objectStore">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="ownerConfigName">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="resourceOwnerId">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="refreshToken">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="expiresIn">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="state">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="additionalParameters">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="overwrite">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="verifyCall">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="processor">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="withAttributes">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="times">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="atLeast">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="atMost">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+    </operations>
+    <sources/>
+    <types>
+        <type name="org.mule.munit.assertion.api.MunitAssertion">
+            <description><![CDATA[]]></description>
+            <parameters/>
+        </type>
+        <type name="org.mule.munit.assertion.api.expression.MatcherResult">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="description">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="matches">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="reasons">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </type>
+        <type name="org.mule.munit.assertion.api.matchers.Diff">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="diffs">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="matches">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </type>
+        <type name="org.mule.munit.assertion.api.matchers.Matcher">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="expected">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="type">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </type>
+        <type name="org.mule.munit.common.api.model.Attribute">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="attributeName">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="whereValue">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </type>
+        <type name="org.mule.munit.common.api.model.Event">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="payload">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="attributes">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="error">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="variables">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </type>
+        <type name="org.mule.munit.common.api.model.FlowName">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="flow">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </type>
+        <type name="org.mule.munit.common.behavior.BehaviorManager">
+            <description><![CDATA[]]></description>
+            <parameters/>
+        </type>
+        <type name="org.mule.munit.tools.util.GetResourceFunctions">
+            <description><![CDATA[Utility functions to handle resources
+ 
+ @since 2.0.0
+ @author Mulesoft Inc.]]></description>
+            <parameters>
+                <parameter name="resourceAsByteArray">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="resourceAsReusableStream">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="resourceAsStream">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="resourceAsString">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </type>
+        <type name="org.mule.munit.tools.util.queue.api.TemporaryQueueRule">
+            <description><![CDATA[Rule to manage temporary queues
+
+ @author Mulesoft Inc.
+ @since 1.0.0]]></description>
+            <parameters>
+                <parameter name="orCreateQueue">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="queueName">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </type>
+    </types>
+</extension-documentation>

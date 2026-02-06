@@ -1,0 +1,12 @@
+sfdc:
+  password: "![1br4tf4FEANcwYgWKUspTg==]"
+  consumerkey: "![TtJyyWQ7lzLlgL6GwoITJp/mr6vUnZcRgJsgso3EuIi/EJOh++Fjad3TTN6FpOIPpo3pLeudmip/CY3UhjDRpGf990LCBJ5t5G6VpK0m3TD4KpxOO1H03WYavYdLEp/Z]"  
+  
+httpReq: 
+    claims:  
+        clientId: "![pcbF1G4WvENmabju+G4g90Y0xiI10gel5sKk6w4hCM4=]"
+        clientSecret: "![itRRgwXu9ho5/tE13T61H+kk5iIQykpaTpMDV0Y+46TVpgfbWXkFlltDaZQUPnP7HGPnRXsO5DyLXQZ2xfsnh6YCr3pgMds6f12SdQAQzVQ=]"
+        
+mq:
+  client_id: "![eHuH3CQywE8oI8ttDr2mGW4epY2aTewv6uSzosTFe4vU3xCYQnyBdWdZNJLKwi0D]"
+  client_secret: "![9QG94JUOygn/mkB/dQpipjL5AzCq4ZWoOw3CS1qSvDZYyAScuNNJz3FjmxsPfQM/]"

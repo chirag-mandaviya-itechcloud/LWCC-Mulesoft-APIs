@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd  http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd  http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <!-- Non-secure regular environment properties -->
+    <configuration-properties doc:name="regular-env-properties" doc:description="Environment specific regular properties" doc:id="07cbb24e-90a7-4e9c-b20b-6009408ce6d8" file="properties/${mule.env}-config.yaml" />
+    <!-- Common base properties -->
+    <configuration-properties doc:name="base-common-properties" doc:description="Common Base Properties - Environment independent" doc:id="f56a469d-bfc5-4446-8780-df31820ecb72" file="properties/common-config.yaml" />
+    <!-- Global Properties -->
+    <secure-properties:config name="secure-env-properties" doc:name="Secure Environment Properties" doc:id="ac09402e-d197-4ce5-8718-de9c0b19afc3" file="properties/secure-${mule.env}-config.yaml" key="${secure.key}" doc:description="Environment specific secured properties" />
+    <http:listener-config name="lagniappe-sys-api-httpListenerConfig">
+        <http:listener-connection host="localhost" port="${http.port}" />
+    </http:listener-config>
+    <http:request-config name="HTTPS_Request_configuration" doc:name="HTTP Request configuration" doc:id="0c474de4-8334-43f8-9d86-7ab82e4331fc">
+        <http:request-connection host="${httpsRequest.host}" port="${httpsRequest.port}" protocol="HTTPS">
+            <reconnection>
+                <reconnect frequency="${httpsRequest.reconnection.frequency}" count="${httpsRequest.reconnection.attempts}" />
+            </reconnection>
+            <tls:context>
+                <tls:trust-store insecure="true" />
+            </tls:context>
+        </http:request-connection>
+    </http:request-config>
+    <http:request-config name="HTTP_Request_conf_int-logs-sfdc-sys-api" doc:name="HTTP Request configuration" doc:id="50cc272b-c81f-43cb-ade6-f9c16e50c645" basePath="${httpReq.integ.basepath}">
+		<http:request-connection protocol="HTTPS" host="${httpReq.integ.host}" port="${httpReq.integ.port}">
+			<tls:context>
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</http:request-connection>
+	</http:request-config>
+    <!-- api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="f29e01bc-e660-428d-b8b5-1d4dfdd7f384" flowRef="lagniappe-sys-api-main" -->
+    <apikit:config name="lagniappe-sys-api-config" api="resource::18404cbf-4922-41d8-a8bd-e903f45d1b04:lagniappe-sys-api:1.5.32:raml:zip:lagniappe-sys-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <global-property doc:name="Global Property" doc:id="e6c15057-a060-422b-b016-8ae155377084" name="mule.env" value="dev" />
+    <json-logger:config name="JSON_Logger_Config" doc:name="JSON Logger Config" doc:id="7b4f3d33-ad69-4a0e-a7c4-07a55e20b5fe" environment="${mule.env}" contentFieldsDataMasking="$.payload.injured-worker[0].vlocity_ins__SocialSecurityNumber__c" />
+    <db:config name="Database_Config" doc:name="Database Config" doc:id="c66a57a7-7833-4ddf-a030-16d77c79bbf6">
+        <db:oracle-connection host="${secure::db.host}" user="${secure::db.user}" password="${secure::db.password}" serviceName="${db.sid}" port="${db.port}">
+            <db:column-types>
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.BODY_PART_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.INTF_ERR_REC" />
+                <db:column-type id="2002" typeName="PKG_IR_UTILS.INTF_ERR_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.CLAIM_REC" />
+                <db:column-type id="2008" typeName="PKG_DGTL_EXPRN_CLM_INTFC.INJURY_TBL" />
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.ACCIDENT_CAT_DETAILS_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.CLMNT_INIT_CONTACT_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.ACCIDENT_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.CLAIM_WORK_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.USLHW_RPT_INJ_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_CLM_INVSTG_INTFC.CLM_INV_IW_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_CLM_INVSTG_INTFC.CLM_INV_IW_FOL_UP_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_CLM_INVSTG_INTFC.CLM_INV_PHY_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_CLM_INVSTG_INTFC.CLM_INV_PLCY_HLDR_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_CLM_INVSTG_INTFC.CLM_INV_PLCY_HLDR_FOLUP_REC" />
+                <db:column-type id="2008" typeName="PKG_DGTL_CLM_INVSTG_INTFC.CLM_INV_IW_RSPN_TBL" />
+                <db:column-type id="2008" typeName="PKG_DGTL_CLM_INVSTG_INTFC.CLM_CNTC_COMNT_TBL" />
+                <db:column-type id="2008" typeName="PKG_DGTL_CLM_INVSTG_INTFC.CLM_INIT_CNTC_COMNT_TBL" />
+                <db:column-type id="2002" typeName="PKG_DGTL_CLM_INVSTG_INTFC.INTF_ERR_REC" />
+                <db:column-type id="2002" typeName="PKG_DGTL_EXPRN_CLM_INTFC.CLAIM_COV_COMMENTS_REC" />
+                <db:column-type id="2008" typeName="PKG_DGTL_EXPRN_CLM_INTFC.CLAIM_COV_COMMENTS_TBL" />
+            </db:column-types>
+        </db:oracle-connection>
+    </db:config>
+    <configuration doc:name="Configuration" doc:id="120332ae-16cf-440d-a2b9-b04e17d8a22a" defaultErrorHandler-ref="api-common-error-handler" />
+</mule>

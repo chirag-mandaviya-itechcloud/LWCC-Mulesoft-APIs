@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+xmlns:db="http://www.mulesoft.org/schema/mule/db"
+		xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd 
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+
+	<!-- Non-secure regular environment properties -->
+	<configuration-properties
+		doc:name="regular-env-properties"
+		doc:description="Environment specific regular properties"
+		doc:id="07cbb24e-90a7-4e9c-b20b-6009408ce6d8"
+		file="properties/${mule.env}-config.yaml" />
+
+	<!-- Common base properties -->
+	<configuration-properties
+		doc:name="base-common-properties"
+		doc:description="Common Base Properties - Environment independent"
+		doc:id="f56a469d-bfc5-4446-8780-df31820ecb72"
+		file="properties/common-config.yaml" />
+
+	<!-- Global Properties -->
+	<secure-properties:config
+		name="secure-env-properties" doc:name="Secure Environment Properties"
+		doc:id="ac09402e-d197-4ce5-8718-de9c0b19afc3"
+		file="properties/secure-${mule.env}-config.yaml" key="${secure.key}"
+		doc:description="Environment specific secured properties">
+	</secure-properties:config>
+
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config"
+		doc:id="2c66826e-1742-4123-a01f-2c94644ccc03">
+		<http:listener-connection host="localhost"
+			port="${http.port}" />
+	</http:listener-config>
+
+    <!-- api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="93f083ae-7207-4d89-8230-7dcedae4b1a5" flowRef="benefits-prc-api-main" / -->
+
+	<global-property doc:name="Global Property"
+		doc:id="e6c15057-a060-422b-b016-8ae155377084" name="mule.env"
+		value="dev01" />
+	<json-logger:config name="JSON_Logger_Config" doc:name="JSON Logger Config" doc:id="7b4f3d33-ad69-4a0e-a7c4-07a55e20b5fe" environment="${mule.env}" />
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="d31123ab-de37-4201-a6d0-2cf9445e4983" />
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="1861b26e-c24a-46db-b8a7-b33c2bc10523" >
+		<salesforce:jwt-connection consumerKey="${secure::sfdc.consumerkey}" keyStore="${mule.env}-jks.jks" storePassword="${secure::sfdc.password}" certificateAlias="${sfdc.alias}" principal="${sfdc.principal}" tokenEndpoint="${sfdc.endpoint}" audienceUrl="${sfdc.audience}"/>
+	</salesforce:sfdc-config>
+		<http:request-config
+		name="HTTPS_Request_conf_sfdcfin_sys_api"
+		doc:name="HTTP Request configuration"
+		doc:id="3f92b784-2f5e-4967-8c24-e33e7f93bd27"
+		basePath="${httpReq.sfdcfin.basepath}" responseTimeout="${connector.response.timeout}">
+		<http:request-connection
+			host="${httpReq.sfdcfin.host}" port="${httpReq.sfdcfin.port}"
+			connectionIdleTimeout="300000" protocol="HTTPS">
+			<reconnection>
+				<reconnect
+					frequency="${httpReq.sfdcfin.reconnection.frequency}"
+					count="${httpReq.sfdcfin.reconnection.attempts}" />
+			</reconnection>
+			<tls:context >
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</http:request-connection>
+	</http:request-config>
+	
+	<http:request-config
+		name="HTTPS_Request_conf_sfdc_sys_api"
+		doc:name="HTTP Request configuration"
+		doc:id="4ea93343-28f5-4915-a9a2-145b380398a9"
+		basePath="${httpReq.sfdc.basepath}" responseTimeout="${connector.response.timeout}">
+		<http:request-connection
+			host="${httpReq.sfdc.host}" port="${httpReq.sfdc.port}"
+			connectionIdleTimeout="300000" protocol="HTTPS">
+			<reconnection>
+				<reconnect
+					frequency="${httpReq.sfdc.reconnection.frequency}"
+					count="${httpReq.sfdc.reconnection.attempts}" />
+			</reconnection>
+			<tls:context >
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</http:request-connection>
+	</http:request-config>
+        <apikit:config name="benefits-prc-api-config" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" api="resource::18404cbf-4922-41d8-a8bd-e903f45d1b04:benefits-prc-api:1.0.3:raml:zip:benefits-prc-api.raml"/>
+        <http:request-config name="HTTPS_Request_conf_lagniappe_fin_sys_api" doc:name="HTTP Request configuration" doc:id="9a036436-07e2-41bc-a55a-f4869d4ba6fd" basePath="${httpReq.lagniappe.fin.basepath}" responseTimeout="${connector.response.timeout}">
+        <http:request-connection host="${httpReq.lagniappe.fin.host}" port="${httpReq.lagniappe.fin.port}" protocol="HTTPS" connectionIdleTimeout="600000">
+            <reconnection>
+                <reconnect frequency="${httpReq.lagniappe.fin.reconnection.frequency}" count="${httpReq.lagniappe.fin.reconnection.attempts}" />
+            </reconnection>
+            <tls:context>
+                <tls:trust-store insecure="true" />
+            </tls:context>
+        </http:request-connection>
+    </http:request-config>
+    <http:request-config name="HTTP_Request_conf_int-logs-sfdc-sys-api" doc:name="HTTP Request configuration" doc:id="7561f10c-e9bb-44f4-80f8-bd27487e9a4a" basePath="${httpReq.integ.basepath}">
+		<http:request-connection protocol="HTTPS" host="${httpReq.integ.host}" port="${httpReq.integ.port}">
+			<tls:context>
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</http:request-connection>
+	</http:request-config>
+	<configuration doc:name="Configuration" doc:id="dadbe566-70b8-47cf-a7e0-c84e684b0c20" defaultErrorHandler-ref="api-common-error-handler" />
+</mule>

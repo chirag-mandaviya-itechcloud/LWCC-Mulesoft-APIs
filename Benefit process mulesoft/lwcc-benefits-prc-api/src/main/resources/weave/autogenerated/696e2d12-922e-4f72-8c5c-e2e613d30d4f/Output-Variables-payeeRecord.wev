@@ -1,0 +1,13 @@
+%dw 2.0
+
+type auto_696e2d12_922e_4f72_8c5c_e2e613d30d4f_Output_Variables_payeeRecord = Array<DT_Benefit_Payee__c {"typeId": "DT_Benefit_Payee__c",
+"label": "Benefits per Payee"}>
+type DT_Benefit_Payee__c = {|
+  DT_Benefits__c?: String, 
+  DT_Claim__c?: String, 
+  Id?: String {"typeId": "Id"}
+|} {"typeId": "DT_Benefit_Payee__c",
+"label": "Benefits per Payee"}
+
+
+

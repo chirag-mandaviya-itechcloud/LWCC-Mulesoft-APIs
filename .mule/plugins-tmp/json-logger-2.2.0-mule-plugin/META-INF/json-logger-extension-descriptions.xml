@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension-documentation>
+    <configs>
+        <config name="config">
+            <description><![CDATA[Default configuration]]></description>
+            <parameters>
+                <parameter name="externalDestination">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="name">
+                    <description><![CDATA[The identifier of this element used to reference it in other components]]></description>
+                </parameter>
+                <parameter name="expirationPolicy">
+                    <description><![CDATA[Configures the minimum amount of time that a dynamic configuration instance can remain idle before the runtime considers it eligible for expiration. This does not mean that the platform will expire the instance at the exact moment that it becomes eligible. The runtime will actually purge the instances when it sees it fit.]]></description>
+                </parameter>
+                <parameter name="applicationName">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="applicationVersion">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="environment">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="prettyPrint">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="logLocationInfo">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="parseContentFieldsInJsonOutput">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="disabledFields">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="contentFieldsDataMasking">
+                    <description><![CDATA[]]></description>
+                </parameter>
+            </parameters>
+        </config>
+    </configs>
+    <connections/>
+    <extension name="JSON Logger">
+        <description><![CDATA[]]></description>
+        <parameters/>
+    </extension>
+    <operations>
+        <operation name="logger">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="config-ref">
+                    <description><![CDATA[The name of the configuration to be used to execute this component]]></description>
+                </parameter>
+                <parameter name="correlationId">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="message">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="content">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="tracePoint">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="priority">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="category">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="target">
+                    <description><![CDATA[The name of a variable on which the operation's output will be placed]]></description>
+                </parameter>
+                <parameter name="targetValue">
+                    <description><![CDATA[An expression that will be evaluated against the operation's output and the outcome of that expression will be stored in the target variable]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+        <operation name="loggerScope">
+            <description><![CDATA[]]></description>
+            <parameters>
+                <parameter name="configurationRef">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="priority">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="scopeTracePoint">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="category">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="correlationId">
+                    <description><![CDATA[]]></description>
+                </parameter>
+                <parameter name="target">
+                    <description><![CDATA[The name of a variable on which the operation's output will be placed]]></description>
+                </parameter>
+                <parameter name="targetValue">
+                    <description><![CDATA[An expression that will be evaluated against the operation's output and the outcome of that expression will be stored in the target variable]]></description>
+                </parameter>
+                <parameter name="errorMappings">
+                    <description><![CDATA[Set of error mappings]]></description>
+                </parameter>
+            </parameters>
+        </operation>
+    </operations>
+    <sources/>
+    <types>
+        <type name="org.mule.extension.jsonlogger.internal.destinations.Destination">
+            <description><![CDATA[]]></description>
+            <parameters/>
+        </type>
+    </types>
+</extension-documentation>

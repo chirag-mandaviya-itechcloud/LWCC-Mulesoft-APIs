@@ -1,0 +1,23 @@
+# ============================================
+# Integration Environment Configuration
+# lwcc-sf-doc-split-exp-api
+# ============================================
+
+http:
+  port: "8081"
+
+mule:
+  env: "integration"
+
+# API Manager Autodiscovery ID
+# TODO: Replace "0" with actual API ID from API Manager after registration
+api:
+  id: "0"
+  name: "lwcc-sf-doc-split-exp-api"
+  version: "v1"
+
+# System API Connection
+# TODO: Replace PLACEHOLDER with actual CloudHub URL after deployment
+sysapi:
+  host: "lwcc-sf-doc-split-sys-api-integration-PLACEHOLDER.vhj0p8.usa-e1.cloudhub.io"
+  port: "443"

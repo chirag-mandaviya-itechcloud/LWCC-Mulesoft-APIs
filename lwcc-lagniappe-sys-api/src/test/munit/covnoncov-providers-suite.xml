@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="covnoncov-providers-suite.xml" />
+	<munit:test name="covnoncov-providers-flow-test" doc:id="b8a29ac6-3bc4-4208-9b8a-0975d42ef768" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call CovNonCov MedProvider SP" doc:id="9cb28a51-7c7d-429d-93e6-80ba1b0e5b0a" processor="db:stored-procedure">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="b8ed8891-fce7-412b-a236-2aef40fed0e2" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/java  --- readUrl('classpath://covnoncovprovidersflowtest\mock_payload.dwl')]" mediaType="application/java " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://covnoncovprovidersflowtest\mock_variable_.dwl')]" />
+						<munit-tools:variable key="in_cncprovider_rec" value="#[output application/java --- readUrl('classpath://covnoncovprovidersflowtest\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="dedde189-953f-4255-a0ae-9b36dfc53fe4" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://covnoncovprovidersflowtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://covnoncovprovidersflowtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://covnoncovprovidersflowtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to covnoncov-providers-flow" doc:id="31726dba-5bf0-4041-8b01-cf5aec30a714" name="covnoncov-providers-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="385083ac-2ba4-4b9e-8aaa-9a5b2bf094c0" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import covnoncovprovidersflowtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify CovNonCov MedProvider SP Response to JSON" doc:id="f9d2c47d-35c7-48e0-9e86-fb610b95ae31" processor="ee:transform" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="bcf1e40c-a9f4-468f-aceb-fb77fbd257a3" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

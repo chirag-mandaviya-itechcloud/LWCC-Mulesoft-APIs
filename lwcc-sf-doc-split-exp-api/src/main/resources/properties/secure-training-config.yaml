@@ -1,0 +1,12 @@
+# ============================================
+# SECURE PROPERTIES - Training Environment
+# lwcc-sf-doc-split-exp-api
+# ============================================
+# Encrypt values using: java -jar secure-properties-tool.jar
+# Key should be provided via -Dsecure.key at runtime
+
+# HTTP Request credentials for downstream System API
+httpReq:
+  sfDocSplit:
+    clientId: "![REPLACE_WITH_ENCRYPTED_VALUE]"
+    clientSecret: "![REPLACE_WITH_ENCRYPTED_VALUE]"

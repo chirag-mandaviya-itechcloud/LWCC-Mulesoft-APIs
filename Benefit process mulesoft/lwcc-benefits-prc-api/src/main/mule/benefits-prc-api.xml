@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+    <flow name="benefits-prc-api-main">
+        <http:listener config-ref="HTTP_Listener_config" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <ee:transform doc:name="Set correlation-id" doc:id="79327c48-077c-4122-87bc-590e5cd63d3c">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="correlationId"><![CDATA[%dw 2.0
+output application/json
+---
+attributes.headers.'x-correlation-id' as String default ""]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<apikit:router config-ref="benefits-prc-api-config" />
+		<error-handler ref="api-common-error-handler" />
+    </flow>
+    <flow name="put:\benefitRecord:application\json:benefits-prc-api-config" doc:id="9074ea79-639d-4aae-914b-0cfe5a0fccd6">
+		<json-logger:logger doc:name="Log START PUT Benefit Record " doc:id="d6de180e-27f2-4feb-9c94-09bfe96dfe29" config-ref="JSON_Logger_Config" message="START PUT Benefit Record " >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<ee:transform doc:name="Capturing Variables" doc:id="aade4715-8cf6-44a5-8eef-4529a5d11042">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logRequestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"PUT benefitRecord Endpoint - benefits-prc-api-config"]]></ee:set-variable>
+				<ee:set-variable variableName="uniqueKeyVar" ><![CDATA[%dw 2.0
+output application/json
+---
+(correlationId default "") ++ "-" ++ (now() as String {format: "yyyyMMddHHmmssSSS"})]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="put-benefitRecord-Sub-Flow" doc:id="1acb781f-5a5f-42bb-887c-561ea2ac1e18" name="put-benefit-record-sub-flow" />
+		<json-logger:logger doc:name="Log END PUT Benefit Record " doc:id="84d352d3-fe47-4a1b-9a2a-7cf11dc9d83a" config-ref="JSON_Logger_Config" message="END PUT Benefit Record " tracePoint="END">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="ea0999f3-2922-411f-a4e6-023973e3a2e8" variableName="logResponseVar"/>
+		<async doc:name="Async" doc:id="c2f7ad55-0edd-457b-8188-258a4fbea895">
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="781b2b8c-4cae-439c-8cdb-efcc61665e2d" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="put:\payeeRecord:application\json:benefits-prc-api-config">
+		<json-logger:logger doc:name="Log START PUT Payee Record " doc:id="b84363e5-5a25-4b53-9018-42cf4a2a0924" config-ref="JSON_Logger_Config" message="START  PUT Payee Record ">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<ee:transform doc:name="Capturing Variables" doc:id="b1524aea-5233-41a8-8c63-1e561f3bf6c5">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logRequestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"PUT payeeRecord Endpoint - benefits-prc-api-config"]]></ee:set-variable>
+				<ee:set-variable variableName="uniqueKeyVar" ><![CDATA[%dw 2.0
+output application/json
+---
+(correlationId default "") ++ "-" ++ (now() as String {format: "yyyyMMddHHmmssSSS"})]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="put-payeesRecord-Sub-Flow" doc:id="6a8892e8-5e71-4e1e-b3f1-f62761967f2b" name="put-payees-record-sub-flow"/>
+		<json-logger:logger doc:name="Log END  PUT Payee Record " doc:id="1cb1c29e-6142-452f-bfbc-6367b3eef1f9" config-ref="JSON_Logger_Config" message="END  PUT Payee Record " tracePoint="END">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="c64e80e0-dfe4-4890-9c26-905cb358f524" variableName="logResponseVar"/>
+		<async doc:name="Async" doc:id="5fb4010c-f60c-4f55-a51c-dc9caed171d6">
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="623d392a-cafd-4ba0-a78d-b1869273ee79" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="get:\healthcheck:benefits-prc-api-config">
+		<ee:transform doc:name="Transform Message" doc:id="1302ef9f-c6da-4e83-8b68-955cfa1e9b13" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  code: "OK",
+  message: "Success"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+    <flow name="post:\benefitRecord:application\json:benefits-prc-api-config">
+		<json-logger:logger doc:name="Log START POST Benefit Record" doc:id="eb134f4d-f214-49d3-8a81-231423aa64d2" config-ref="JSON_Logger_Config" message="START POST Benefit Record ">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<ee:transform doc:name="Capturing Variables" doc:id="1d0e46a7-ba55-4e69-a5b0-3b44f09ef7c9">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logRequestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"POST benefitRecord Endpoint - benefits-prc-api-config"]]></ee:set-variable>
+				<ee:set-variable variableName="uniqueKeyVar" ><![CDATA[%dw 2.0
+output application/json
+---
+(correlationId default "") ++ "-" ++ (now() as String {format: "yyyyMMddHHmmssSSS"})]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="post-benefitRecord-Sub-Flow" doc:id="0c6e8069-f0cd-4d01-b706-1dfe64b5a83c" name="post-benefit-record-sub-flow"/>
+		<json-logger:logger doc:name="Log END POST Benefit Record " doc:id="0087f630-a5ac-4d21-8b71-667b31985e3b" config-ref="JSON_Logger_Config" message="END POST Benefit Record " tracePoint="END">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="72d1b1a3-e9e6-46ba-b412-64859bfcd433" variableName="logResponseVar"/>
+		<async doc:name="Async" doc:id="a2b85ae6-d8b2-482d-a38b-4bdab4fb78e8">
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="f91bd821-153f-4b1d-afe7-cb53934f1f8a" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+    <flow name="post:\payeeRecord:application\json:benefits-prc-api-config" doc:id="cf23b581-7b4a-46db-9f43-391de00fafcd">
+		<json-logger:logger doc:name="Log START POST Payee Record" doc:id="cc301da5-a9ec-43a7-9f0e-5232018816c0" config-ref="JSON_Logger_Config" message="START  POST Payee Record ">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<ee:transform doc:name="Capturing Variables" doc:id="e2fa9e48-18f6-4966-a5ae-f7484f936677">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logRequestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"POST payeeRecord Endpoint - benefits-prc-api-config"]]></ee:set-variable>
+				<ee:set-variable variableName="uniqueKeyVar" ><![CDATA[%dw 2.0
+output application/json
+---
+(correlationId default "") ++ "-" ++ (now() as String {format: "yyyyMMddHHmmssSSS"})]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="post-payeesRecord-Sub-Flow" doc:id="3798c83a-aae8-4e83-b020-4112c5861fd3" name="post-payees-record-sub-flow"/>
+		<json-logger:logger doc:name="Log END  POST Payee Record " doc:id="7e8e8f96-fcf3-4255-a04e-1f5a5391dcc1" config-ref="JSON_Logger_Config" message="END  POST Payee Record " tracePoint="END">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="12cce0ba-5b77-4a4d-b95e-e3c0b126a2c7" variableName="logResponseVar"/>
+		<async doc:name="Async" doc:id="b7066d1e-8772-4d3b-b117-824638c48124">
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="3f81ae6b-6a83-42ea-9335-2795eaf9c33f" name="create-integration-logs-subflow" />
+		</async>
+    </flow>
+	<flow name="patch:\claimPayee:application\json:benefits-prc-api-config" doc:id="20d5c544-bcc6-49e1-9641-822d664ea8b0" >
+		<json-logger:logger doc:name="Log START ClaimPayee PATCH Operation" doc:id="87b19a01-3cc4-48c6-87ec-ad31b0f79c9e" config-ref="JSON_Logger_Config" message="START ClaimPayee PATCH Operation" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<ee:transform doc:name="Capturing Variables" doc:id="a3d12f45-6b2e-4e81-9f23-8c5a6f7b8d90">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="logRequestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"PATCH claimPayee Endpoint - benefits-prc-api-config"]]></ee:set-variable>
+				<ee:set-variable variableName="uniqueKeyVar" ><![CDATA[%dw 2.0
+output application/json
+---
+(correlationId default "") ++ "-" ++ (now() as String {format: "yyyyMMddHHmmssSSS"})]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Ref to patch-claimpayee-record-sub-flow" doc:id="9e0285df-d94c-49c1-a2e2-ee88387a5616" name="patch-claimpayee-record-sub-flow" />
+		<json-logger:logger doc:name="Log END ClaimPayee PATCH Operation" doc:id="c954bb56-309d-4415-94b6-176fe91186b2" config-ref="JSON_Logger_Config" message="END ClaimPayee PATCH Operation" tracePoint="END" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<set-variable value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;&#10;---&#10;toBase64(write(payload, "application/json"))]' doc:name="Set Response As Variable" doc:id="d1e2f3a4-b5c6-4d7e-8a9b-0c1d2e3f4a5b" variableName="logResponseVar"/>
+		<async doc:name="Async" doc:id="e2f3a4b5-c6d7-4e8f-9a0b-1c2d3e4f5a6b">
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="f3a4b5c6-d7e8-4f9a-0b1c-2d3e4f5a6b7c" name="create-integration-logs-subflow" />
+		</async>
+	</flow>
+</mule>

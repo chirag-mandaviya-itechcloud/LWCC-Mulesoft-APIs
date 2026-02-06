@@ -1,0 +1,54 @@
+#%RAML 1.0 DataType
+
+displayName: Part Detail
+description: Details of a single split part
+
+type: object
+properties:
+  partNumber:
+    type: integer
+    minimum: 1
+    maximum: 5
+    description: Sequential part number (1-indexed)
+    example: 1
+  pageStart:
+    type: integer
+    minimum: 1
+    description: First page number in this part (1-indexed)
+    example: 1
+  pageEnd:
+    type: integer
+    minimum: 1
+    description: Last page number in this part (1-indexed)
+    example: 42
+  pageCount:
+    type: integer
+    description: Total number of pages in this part
+    example: 42
+  sizeBytes:
+    type: integer
+    description: Size of this part in bytes
+    example: 14728192
+  sizeMb:
+    type: number
+    description: Size of this part in megabytes
+    example: 14.04
+  contentVersionId:
+    type: string
+    description: Salesforce ContentVersionId of the uploaded part (null for dry-run)
+    required: false
+    example: 068Hp00000AAAA001
+  contentDocumentId:
+    type: string
+    description: Salesforce ContentDocumentId of the uploaded part (null for dry-run)
+    required: false
+    example: 069Hp00000BBBB001
+  contentDocumentLinkId:
+    type: string
+    description: Salesforce ContentDocumentLinkId linking part to claim (null for dry-run)
+    required: false
+    example: 06AHp00000CCCC001
+  fileName:
+    type: string
+    description: File name of this part
+    example: ClaimEvidence_2026_part01.pdf

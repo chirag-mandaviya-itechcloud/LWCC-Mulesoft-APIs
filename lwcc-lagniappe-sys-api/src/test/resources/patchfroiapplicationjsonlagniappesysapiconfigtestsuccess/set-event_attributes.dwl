@@ -1,0 +1,32 @@
+{
+  "headers": {
+    "client_id": "0oadu1v29xL5bCk9W697",
+    "client_secret": "8jQuhinEtypykiljFsZbRICMoqE352GW5oSUGJvsbVM7NcpbL9qaB1rl7uwUTMJ2",
+    "content-type": "application/json",
+    "x-correlation-id": "123456789",
+    "user-agent": "PostmanRuntime/7.39.0",
+    "accept": "*/*",
+    "cache-control": "no-cache",
+    "postman-token": "a1a77df5-3f4d-40cc-9e3d-7dd067e84357",
+    "host": "localhost:8081",
+    "accept-encoding": "gzip, deflate, br",
+    "connection": "keep-alive",
+    "content-length": "37"
+  },
+  "clientCertificate": null,
+  "method": "PATCH",
+  "scheme": "http",
+  "queryParams": {},
+  "requestUri": "/api/froi",
+  "queryString": "",
+  "version": "HTTP/1.1",
+  "maskedRequestPath": "/froi",
+  "listenerPath": "/api/*",
+  "localAddress": "/127.0.0.1:8081",
+  "relativePath": "/api/froi",
+  "uriParams": {},
+  "rawRequestUri": "/api/froi",
+  "rawRequestPath": "/api/froi",
+  "remoteAddress": "/127.0.0.1:49459",
+  "requestPath": "/api/froi"
+}

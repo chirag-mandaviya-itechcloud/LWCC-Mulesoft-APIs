@@ -1,0 +1,30 @@
+%dw 2.0
+
+type auto_ec8592f4_066c_4db2_b6fc_3b51fe57f66a_Input_Payload = {
+  dtThroughDate?: String | Null, 
+  dtElectronicPayment?: String | Null, 
+  dtBenefits: String, 
+  dtAddress1?: String | Null, 
+  dtAddress2?: String | Null, 
+  dtZip?: String | Null, 
+  dtClaim: String, 
+  dtState?: String | Null, 
+  dtPayeeCode?: String | Null, 
+  dtAwardPerPayee?: String | Null, 
+  dtFrequency?: String | Null, 
+  dtClaimPayee?: String | Null, 
+  dtEnrollForAutomaticPayment?: String | Null, 
+  dtNotEligibleForElectronicPayments?: String | Null, 
+  dtPayeeName?: String | Null, 
+  dtCountry?: String | Null, 
+  dtWeeklyAmount?: String | Null, 
+  name?: String | Null, 
+  dtRelationship?: String | Null, 
+  benefitPayeeRecordId: String, 
+  dtPayeeStatus?: String | Null, 
+  dtBenefitPercentage?: String | Null, 
+  dtCity?: String | Null, 
+  dtFromDate?: String | Null, 
+  _?: Any
+}
+

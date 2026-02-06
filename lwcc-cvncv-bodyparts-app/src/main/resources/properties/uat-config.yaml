@@ -1,0 +1,37 @@
+api: 
+    id: "123456"         # replace with real id once added to api manager        
+    clientId: ""
+    clientSecret: ""
+          # API Configurations        
+    name: "${project.name}"
+    version: "${api.version}"
+  
+http: 
+    port: "8081"
+  
+sfdc: 
+    alias: "muleuat2025"
+    endpoint: "https://test.salesforce.com/services/oauth2/token"
+    audience: "https://test.salesforce.com"
+    principal: "sfanypointapi@lwcc.com.uat"
+    
+claims:
+  method: "method"
+  basepath: "/api"
+  path: "/covNonCovBodyParts"
+  port: "443"
+  host: "lwcc-claims-prc-api-uat-8b4ob6.internal-vhj0p8.usa-e1.cloudhub.io"
+  
+mq:
+  url: "https://mq-us-east-1.anypoint.mulesoft.com/api/v1/organizations/18404cbf-4922-41d8-a8bd-e903f45d1b04/environments/a2df805f-955e-468a-aec8-c29297e15ef4"
+
+httpReq:
+  integ:
+    host: "lwcc-int-log-sfdc-sys-api-uat-8b4ob6.internal-vhj0p8.usa-e1.cloudhub.io"
+    port: "443"
+    path: "/integrationLogs"
+    basepath: "/api"
+    method: "POST"
+    reconnection:
+      frequency: "2000"
+      attempts: "2"        

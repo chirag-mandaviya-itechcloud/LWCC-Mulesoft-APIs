@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd">
+	<flow name="cvncv-bodyparts-app-impl-flow" doc:id="207c2be4-26ec-4001-873f-756b448e125b" >
+		<ee:transform doc:name="Set Claims Process API Request Body and Method var" doc:id="76467b6f-0999-44c8-82d3-4f26ce672b46" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+    "sfRecordId": payload.data.payload.ChangeEventHeader.recordIds[0],
+    "operation": capitalize(payload.data.payload.ChangeEventHeader.changeType)
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="reqmethod" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.data.payload.ChangeEventHeader.changeType match {
+    case changetype if (changetype == 'CREATE') -> "POST"
+    case changetype if (changetype == 'UPDATE') -> "PUT"
+    case changetype if (changetype == 'DELETE') -> "DELETE"
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger doc:name="Logg BEFORE Call Claims Process API" doc:id="952edea0-48f9-4894-a708-0449a1465054" config-ref="JSON_Logger_Config" message="BEFORE Call Claims Process API" tracePoint="BEFORE_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<try doc:name="Try" doc:id="d250ab39-a492-4b1c-ae53-39ccfccd97ef" >
+			<anypoint-mq:publish doc:name="Body Parts Queue" doc:id="15dc1213-d21b-4377-9af4-ecda8121c4de" config-ref="Anypoint_MQ_Config" destination='${mq.queue}'>
+				<anypoint-mq:properties ><![CDATA[#[{
+	"method": vars.reqmethod
+}]]]></anypoint-mq:properties>
+			</anypoint-mq:publish>
+		</try>
+		<json-logger:logger doc:name="Logg AFTER Call Claims Process API" doc:id="c954afee-8471-46d1-b6fb-602016ef2c84" config-ref="JSON_Logger_Config" message="AFTER  Call Claims Process API" tracePoint="AFTER_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</flow>
+</mule>

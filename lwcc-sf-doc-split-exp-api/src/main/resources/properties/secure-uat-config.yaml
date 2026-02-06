@@ -1,0 +1,12 @@
+# ============================================
+# SECURE PROPERTIES - UAT Environment
+# lwcc-sf-doc-split-exp-api
+# ============================================
+# Encrypt values using: java -jar secure-properties-tool.jar
+# Key should be provided via -Dsecure.key at runtime
+
+# HTTP Request credentials for downstream System API
+httpReq:
+  sfDocSplit:
+    clientId: "![cM96hXd6Zg0WqQAT5N488uO9HAO8fyH7zV0JE7dCaXc=]"
+    clientSecret: "![/T79jBxPKDg4E5YVFVeMzmGbOuvoP8w1/dw8wcL6Et0++l+ZRkonGP7gkpp9hkZhDxNuVMX2RuY85/Qh7rMfyFAP1M0W/tjPLo1eArSEWHQ=]"

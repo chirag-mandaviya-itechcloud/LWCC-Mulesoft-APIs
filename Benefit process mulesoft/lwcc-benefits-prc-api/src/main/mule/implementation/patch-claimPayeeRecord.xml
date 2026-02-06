@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<sub-flow name="patch-claimpayee-record-sub-flow" doc:id="ba3f8a88-8f14-4931-b701-8722ba57bb35" >
+		<ee:transform doc:name="Set Claim Payee Id" doc:id="a011354d-454f-4973-bb55-6762e0b0dd02">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="claimPayeeRecordId" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.id]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="sf-lookup-claim-payee-sub-flow" doc:id="352a15c7-9f15-4267-90cc-f10beee67780" name="sf-lookup-claim-payee-sub-flow"/>
+		<ee:transform doc:name="Prepare payload for lagniappe" doc:id="1fbedb38-3b2f-44d8-a1c3-f2b0cfb1b786" >
+			<ee:message >
+				<ee:set-payload resource="transforms/dwl/p-upsertClaimPayeeRequest.dwl" />
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="patch-claimpayee-sub-flow" doc:id="afa8e856-9bdf-42e2-bb8f-1db52b202a74" name="patch-claimpayee-sub-flow" />
+	</sub-flow>
+</mule>

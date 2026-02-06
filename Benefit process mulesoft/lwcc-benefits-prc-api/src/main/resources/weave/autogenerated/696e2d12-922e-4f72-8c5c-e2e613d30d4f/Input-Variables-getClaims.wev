@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_696e2d12_922e_4f72_8c5c_e2e613d30d4f_Input_Variables_getClaims = Any
+

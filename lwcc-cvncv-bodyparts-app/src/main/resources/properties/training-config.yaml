@@ -1,0 +1,26 @@
+api: 
+    id: "123456"         # replace with real id once added to api manager        
+    clientId: ""
+    clientSecret: ""
+          # API Configurations        
+    name: "${project.name}"
+    version: "${api.version}"
+  
+http: 
+    port: "8081"
+  
+sfdc: 
+    alias: "mulenonprod24v2"
+    endpoint: "https://test.salesforce.com/services/oauth2/token"
+    audience: "https://test.salesforce.com"
+    principal: "sfanypointapi@lwcc.com.sftrain"
+    
+claims:
+  method: "method"
+  basepath: "/api"
+  path: "/covNonCovBodyParts"
+  port: "443"
+  host: "lwcc-claims-prc-api-training-ghxhq3.internal-vhj0p8.usa-e1.cloudhub.io"
+  
+mq:
+  url: "https://mq-us-east-1.anypoint.mulesoft.com/api/v1/organizations/18404cbf-4922-41d8-a8bd-e903f45d1b04/environments/b290c7b2-e005-4363-8c21-1c2d90329f43"        

@@ -1,0 +1,60 @@
+#%RAML 1.0 DataType
+
+displayName: Split Response
+description: Response containing the results of a PDF split operation
+
+type: object
+properties:
+  claimId:
+    type: string
+    description: Salesforce Record ID of the claim
+    example: a0B5g00000AbCdEfGh
+  sourceContentDocumentId:
+    type: string
+    description: Original ContentDocumentId that was split
+    example: 069Hp00000BcDeFgHi
+  sourceContentVersionId:
+    type: string
+    description: ContentVersionId of the source document version that was split
+    example: 068Hp00000CdEfGhIj
+  originalFileName:
+    type: string
+    description: Original file name of the PDF
+    example: ClaimEvidence_2026.pdf
+  originalSizeBytes:
+    type: integer
+    description: Original file size in bytes
+    example: 47185920
+  originalPageCount:
+    type: integer
+    description: Total number of pages in the original PDF
+    example: 156
+  partCount:
+    type: integer
+    minimum: 1
+    maximum: 5
+    description: Number of parts created
+    example: 4
+  status:
+    type: string
+    enum: [COMPLETED, DRY_RUN]
+    description: Status of the split operation
+    example: COMPLETED
+  dryRun:
+    type: boolean
+    default: false
+    description: Whether this was a dry-run (no upload performed)
+    example: false
+  parts:
+    type: array
+    items: !include part-detail.raml
+    maxItems: 5
+    description: Details of each split part
+  correlationId:
+    type: string
+    description: Correlation ID for request tracing
+    example: 550e8400-e29b-41d4-a716-446655440000
+  timestamp:
+    type: datetime
+    description: Timestamp of the response (ISO 8601 format)
+    example: 2026-01-20T14:35:22+05:30

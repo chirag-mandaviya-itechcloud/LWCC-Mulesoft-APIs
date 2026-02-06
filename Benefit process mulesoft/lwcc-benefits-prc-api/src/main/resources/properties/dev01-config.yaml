@@ -1,0 +1,75 @@
+api: 
+    id: "20414461"         # replace with real id once added to api manager        
+    clientId: ""
+    clientSecret: ""
+          # API Configurations        
+    name: "${project.name}"
+    version: "${api.version}"
+  
+http: 
+    port: "8081"
+    
+mule.env: "dev01"
+  
+httpReq: 
+  sfdcfin:
+    host:  "lwcc-sfdc-fin-sys-api-dev01-2kyssg.internal-vhj0p8.usa-e1.cloudhub.io"
+    port:   "443"
+    path:
+      benefit: "/benefit"
+      payees: "/payees" 
+      
+    basepath: "/api"
+    createMethod: "POST"
+    updateMethod: "PUT"
+    upsertMethod: "PATCH"
+    getMethod: "GET"
+    reconnection:  
+        frequency: "2000"
+        attempts: "2" 
+  sfdc:
+    host:  "lwcc-sfdc-sys-api-dev01-2kyssg.internal-vhj0p8.usa-e1.cloudhub.io"
+    port:   "443"
+    path:
+      claim: "/claim"
+    basepath: "/api"
+    createMethod: "POST"
+    updateMethod: "PUT"
+    upsertMethod: "PATCH"
+    getMethod: "GET"
+    reconnection:  
+        frequency: "2000"
+        attempts: "2"   
+        
+  lagniappe:
+    fin:
+      host: "lwcc-lagniappe-finance-sys-api-dev01-2kyssg.internal-vhj0p8.usa-e1.cloudhub.io"
+   #   host: "lwcc-lagniappe-finance-sys-api-dev-eys8n0.vhj0p8.usa-e1.cloudhub.io"
+      port:   "443"
+      path:
+        benefits: "/benefits"
+        claimPayee: "/claimPayee"
+      basepath: "/api"
+      method: "POST"
+      updateMethod: "PUT"
+      patchMethod: "PATCH"
+      reconnection:
+          frequency: "2000"
+          attempts: "2"
+  integ:
+      host: "lwcc-int-log-sfdc-sys-api-dev01-2kyssg.internal-vhj0p8.usa-e1.cloudhub.io"
+      port: "443"
+      path: "/integrationLogs"
+      basepath: "/api"
+      method: "POST"
+      reconnection:
+          frequency: "2000"
+          attempts: "2"
+
+
+sfdc:
+    alias: "muledev012025"
+    endpoint: "https://test.salesforce.com/services/oauth2/token"
+    audience: "https://test.salesforce.com"
+    principal: "sfanypointapi@lwcc.com.dev01"
+    

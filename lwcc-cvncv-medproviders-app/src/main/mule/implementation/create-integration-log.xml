@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="create-integration-logs-subflow" doc:id="50451f8a-fc98-4035-8b82-8c3bc290c39b" >
+		<ee:transform doc:name="Create Integration Log Request" doc:id="e80a7648-b013-4930-990a-cc985bdce105" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var exceptionInfo = vars.exceptionVar default null
+---
+{
+  requestVar: vars.logRequestVar,
+  responseVar: vars.logResponseVar,
+  exception: exceptionInfo,
+  requestType: vars.methodVar,
+  status: if (exceptionInfo != null) "Failed" else "Success",
+  uniqueKey: correlationId ++ "-" ++ (now() as String {format: "yyyyMMddHHmmssSSS"})
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="Flow ref POST /integrationLogs Integration Logs System API Request" doc:id="7f81c718-3330-492c-997d-a9363cfc354b" name="integration-logs-subflow"/>
+	</sub-flow>
+	<sub-flow name="integration-logs-subflow"
+		doc:id="7c6bc516-8283-440d-a3db-dc2784136c1c">
+		<json-logger:logger
+			doc:name="Log BEFORE POST /integrationLogs Integration Logs System API Request"
+			doc:id="87b2a896-f5a4-4eb9-a209-0bb7e9eca4dc"
+			config-ref="JSON_Logger_Config"
+			message="BEFORE POST /integrationLogs Integration Logs System API Request"
+			tracePoint="BEFORE_REQUEST">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<try doc:name="Try" doc:id="d40d0244-ed3a-4f26-a1f2-5f821dba8743">
+			<http:request method="${httpReq.integ.method}"
+				doc:name="POST /integrationLogs Integration Logs System API Request"
+				doc:id="52e60ae9-6c76-4198-8b87-e808deea6071"
+				config-ref="HTTP_Request_conf_int-logs-sfdc-sys-api"
+				path="${httpReq.integ.path}">
+				<http:headers><![CDATA[#[{
+	"client_secret" : Mule::p('secure::httpReq.integ.clientSecret'),
+	"client_id" : Mule::p('secure::httpReq.integ.clientId')
+}]]]></http:headers>
+			</http:request>
+		</try>
+		<json-logger:logger
+			doc:name="Log AFTER POST /integrationLogs Integration Logs System API Request"
+			doc:id="14930125-f324-43b2-9a90-4299cf1a9f8c"
+			config-ref="JSON_Logger_Config"
+			message="AFTER POST /integrationLogs Integration Logs System API Request"
+			tracePoint="AFTER_REQUEST">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+</sub-flow>
+
+</mule>

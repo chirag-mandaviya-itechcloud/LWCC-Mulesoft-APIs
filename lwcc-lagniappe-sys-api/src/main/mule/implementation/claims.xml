@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="claims-flow"
+		doc:id="5bb7147e-12f2-44ed-adc0-7c3b0fc98095">
+		<set-variable
+			value="#[payload.'claim-object'.Name != null]"
+			doc:name="Set Update Flag"
+			doc:id="7ad67035-e49d-4478-a4ef-d594b2a30f61"
+			variableName="isUpdate" />
+		<ee:transform doc:name="Prepare Claims SP Parameters" doc:id="b9acb53a-1024-4db0-99b9-86ad38ec597f">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable resource="transforms/dwl/prepare_claims_claim_rec_sp_call.dwl" variableName="in_claim_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claims_injury_tbl_sp_call.dwl" variableName="in_injury_tbl" />
+				<ee:set-variable resource="transforms/dwl/prepare_claims_accident_cat_details_rec.dwl" variableName="in_accident_cat_details_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claims_clmnt_init_contact_rec.dwl" variableName="in_clmnt_init_contact_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claims_accident_rec.dwl" variableName="in_accident_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claims_claim_work_rec.dwl" variableName="in_claim_work_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claims_uslhw_rpt_inj_rec.dwl" variableName="in_uslhw_rpt_inj_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claim_in_claim_cov_comments_tbl.dwl" variableName="in_claim_cov_comments_tbl" />
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger doc:name="Log BEFORE Call Claims SP" doc:id="c4f146b8-0e95-4f1b-9e6e-224282ad146f" config-ref="JSON_Logger_Config" message="BEFORE Call Claims SP" tracePoint="BEFORE_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+ payload: {'claim_rec': JSONLoggerModule::stringifyNonJSON(vars.in_claim_rec), 
+ 'uslhw_rpt_inj_rec': JSONLoggerModule::stringifyNonJSON(vars.in_uslhw_rpt_inj_rec), 
+ 'claim_work_rec': JSONLoggerModule::stringifyNonJSON(vars.in_claim_work_rec), 
+ 'accident_rec': JSONLoggerModule::stringifyNonJSON(vars.in_accident_rec), 
+ 'clmnt_init_contact_rec': JSONLoggerModule::stringifyNonJSON(vars.in_clmnt_init_contact_rec), 
+ 'accident_cat_details_rec': JSONLoggerModule::stringifyNonJSON(vars.in_accident_cat_details_rec), 
+ 'injury_tbl': JSONLoggerModule::stringifyNonJSON(vars.in_injury_tbl),
+ 'claim_cov_comments_tbl': JSONLoggerModule::stringifyNonJSON(vars.in_claim_cov_comments_tbl)
+}
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="${httpsRequest.reconnection.attempts}" doc:name="Until Successful" doc:id="4eb4316b-ffd1-4464-a016-d7fc87901a70" millisBetweenRetries="${httpsRequest.reconnection.frequency}">
+			<db:stored-procedure doc:name="Call Claims SP" doc:id="f186e731-fadf-45c9-8737-2123a9e4762a" config-ref="Database_Config" inOutParameters="#[{ claim_rec: vars.in_claim_rec }]" queryTimeout="30000" queryTimeoutUnit="MILLISECONDS">
+			<db:sql><![CDATA[{ call pkg_dgtl_exprn_clm_intfc.prc_claim(:claim_rec, :uslhw_rpt_inj_rec, :claim_work_rec, :accident_rec, :clmnt_init_contact_rec, :accident_cat_details_rec, :injury_tbl, :claim_cov_comments_tbl, :response) }]]></db:sql>
+			<db:input-parameters><![CDATA[#[{ 
+	uslhw_rpt_inj_rec: vars.in_uslhw_rpt_inj_rec, 
+	claim_work_rec: vars.in_claim_work_rec, 
+	accident_rec: vars.in_accident_rec, 
+	clmnt_init_contact_rec: vars.in_clmnt_init_contact_rec, 
+	accident_cat_details_rec: vars.in_accident_cat_details_rec, 
+	claim_cov_comments_tbl: vars.in_claim_cov_comments_tbl,
+	injury_tbl: vars.in_injury_tbl
+}]]]></db:input-parameters>
+			<db:output-parameters>
+				<db:output-parameter key="response" customType="PKG_DGTL_EXPRN_CLM_INTFC.INTF_ERR_REC" />
+			</db:output-parameters>
+		</db:stored-procedure>
+		</until-successful>
+		<ee:transform doc:name="Claims SP Response to JSON" doc:id="d6de7486-9a49-4a44-8783-5e5c399e870a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger doc:name="Log AFTER Call Claims SP" doc:id="0f5f4ec6-86eb-4b00-a7fe-9aa6117201bf" config-ref="JSON_Logger_Config" message="AFTER Call Claims SP" tracePoint="AFTER_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="8bbeb6ae-660c-459b-98fb-697d5f9ce172" >
+			<when expression="#[payload.response[0] == 0 and !vars.isUpdate]">
+				<ee:transform doc:name="Set Success 201 Response" doc:id="a83012e3-75be-44b6-aef7-ba5cd003f2d9">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "claim-number": payload."claim_rec"[6],
+  "claim-unit-code": payload."claim_rec"[24],
+  "claim_enter_date": payload."claim_rec"[63]
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[201]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<when expression="#[payload.response[0] == 0 and vars.isUpdate]" >
+				<ee:transform doc:name="Set Success 200 Response" doc:id="01568912-6143-404f-a3a6-b255ece70964">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "claim-number": payload."claim_rec"[6],
+  "claim-unit-code": payload."claim_rec"[24],
+  "claim_enter_date": payload."claim_rec"[63]
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[200]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Set Error Response" doc:id="e3f5af20-b9cf-4b91-8a0f-59efc7862271">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "INTERNAL_SERVER_ERROR",
+  "errorMessage": payload.response[1],
+  "transactionId": vars.correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus" ><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

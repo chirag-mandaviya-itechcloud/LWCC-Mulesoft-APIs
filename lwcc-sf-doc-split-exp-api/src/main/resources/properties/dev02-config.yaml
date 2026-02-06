@@ -1,0 +1,21 @@
+# ============================================
+# DEV02 Environment Configuration
+# lwcc-sf-doc-split-exp-api
+# ============================================
+
+http:
+  port: "8081"
+
+mule:
+  env: "dev02"
+
+# API Manager Autodiscovery ID
+api:
+  id: "20701173"
+  name: "lwcc-sf-doc-split-exp-api"
+  version: "v1"
+
+# System API Connection
+sysapi:
+  host: "lwcc-sf-doc-split-sys-api-dev02-wtq68e.vhj0p8.usa-e1.cloudhub.io"
+  port: "443"

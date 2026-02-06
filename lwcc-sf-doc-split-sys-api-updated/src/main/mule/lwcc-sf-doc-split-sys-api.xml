@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+		http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<!-- ============================================== -->
+	<!-- MAIN API FLOW                                  -->
+	<!-- HTTP Listener -> APIkit Router                 -->
+	<!-- ============================================== -->
+	<flow name="sf-doc-split-api-main"
+		doc:id="main-flow"
+		doc:name="sf-doc-split-api-main">
+
+		<http:listener doc:name="HTTP Listener"
+			doc:id="http-listener"
+			config-ref="HTTP_Listener_config"
+			path="${api.basePath}/*">
+			<http:response statusCode="#[vars.httpStatus default 200]">
+				<http:headers><![CDATA[#[vars.outboundHeaders default {} ++ {'Content-Type': 'application/json'}]]]></http:headers>
+			</http:response>
+			<http:error-response statusCode="#[vars.httpStatus default 500]">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[vars.outboundHeaders default {} ++ {'Content-Type': 'application/json'}]]]></http:headers>
+			</http:error-response>
+		</http:listener>
+
+		<!-- Capture request start time -->
+		<set-variable doc:name="Set Request Start Time"
+			doc:id="set-request-start-time"
+			variableName="requestStartTime"
+			value="#[now()]" />
+
+		<!-- Generate/Extract Correlation ID -->
+		<set-variable doc:name="Set correlationId"
+			doc:id="set-correlation-id"
+			variableName="correlationId"
+			value="#[attributes.headers.'x-correlation-id' default uuid()]" />
+
+		<!-- Extract client_id for logging (never log client_secret) -->
+		<set-variable doc:name="Extract client_id"
+			doc:id="extract-client-id"
+			variableName="clientIdHeader"
+			value="#[attributes.headers.'client_id' default 'not-provided']" />
+
+		<!-- Add correlation ID to outbound headers -->
+		<set-variable doc:name="Set outbound headers"
+			doc:id="set-outbound-headers"
+			variableName="outboundHeaders"
+			value="#[{'X-Correlation-Id': vars.correlationId}]" />
+
+		<!-- JSON Structured Log: Request Received -->
+		<json-logger:logger
+			doc:name="Log Request"
+			doc:id="log-request-json"
+			config-ref="JSON_Logger_Config"
+			message="Request Received"
+			tracePoint="START"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	method: attributes.method,
+	path: attributes.requestPath,
+	clientId: vars.clientIdHeader
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- APIkit Router -->
+		<apikit:router doc:name="APIkit Router"
+			doc:id="apikit-router"
+			config-ref="sf-doc-split-api-config" />
+
+		<!-- Calculate elapsed time -->
+		<set-variable doc:name="Calculate Elapsed Time"
+			doc:id="calculate-elapsed-time"
+			variableName="elapsedMs"
+			value="#[(now() - vars.requestStartTime) as Number {unit: 'milliseconds'}]" />
+
+		<!-- JSON Structured Log: Response -->
+		<json-logger:logger
+			doc:name="Log Response"
+			doc:id="log-response-json"
+			config-ref="JSON_Logger_Config"
+			message="Response Sent"
+			tracePoint="END"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	statusCode: vars.httpStatus default 200,
+	elapsedMs: vars.elapsedMs
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Ensure response is JSON serialized -->
+		<ee:transform doc:name="Serialize Response to JSON"
+			doc:id="serialize-response-json">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<!-- Error Handler Reference -->
+		<error-handler ref="api-common-error-handler" />
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- API CONSOLE FLOW                               -->
+	<!-- For testing and documentation                  -->
+	<!-- ============================================== -->
+	<flow name="sf-doc-split-api-console"
+		doc:id="console-flow"
+		doc:name="sf-doc-split-api-console">
+
+		<http:listener doc:name="HTTP Listener Console"
+			doc:id="http-listener-console"
+			config-ref="HTTP_Listener_config"
+			path="/console/*">
+			<http:response statusCode="#[vars.httpStatus default 200]">
+				<http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+			</http:response>
+		</http:listener>
+
+		<apikit:console doc:name="APIkit Console"
+			doc:id="apikit-console"
+			config-ref="sf-doc-split-api-config" />
+
+	</flow>
+
+</mule>

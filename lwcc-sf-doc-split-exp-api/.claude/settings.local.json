@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(dir /s /b \"C:\\\\LWCC AnyPoint\\\\lwcc-sf-doc-split-exp-api\\\\src\")",
+      "Bash(dir:*)",
+      "Read(//c/MuleSoft/LWCC/**)",
+      "Bash(cd /c/LWCC AnyPoint/lwcc-sf-doc-split-sys-api)",
+      "Bash(mvn dependency:tree:*)",
+      "Bash(cmd /c \"dir /s /b\")",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="patch-claimPayeeRecord-suite.xml" />
+	<munit:test name="patch-claimpayee-record-sub-flow-success-test" doc:id="252af98a-b845-4243-b45c-b37c249026e6" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock sf-lookup-claim-payee-sub-flow" doc:id="2d07dc22-9b16-4b03-ba11-d4fd7928f512" processor="salesforce:query">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Query Salesforce claim payee" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="fa4889ad-42e8-4313-9d8a-2505bc62e43d" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/java --- readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_payload.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_variable_.dwl')]" />
+						<munit-tools:variable key="claimPayeeRecordId" value="#[output application/json --- readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_variable_1.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/json --- readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_variable_2.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock patch-claimpayee-sub-flow" doc:id="8bfd9976-3c81-4aa4-ba8f-55d50465ef7d" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Patch /claimPayee   System API Request" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="4c51e17c-722f-40cb-9c01-83b15ceefab3" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_payload1.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:attributes value="#[readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_attributes.dwl')]" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_variable_3.dwl')]" />
+						<munit-tools:variable key="claimPayeeRecordId" value="#[output application/json --- readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_variable_4.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/json --- readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/mock_variable_5.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="3b7d1c52-0973-440a-bfce-f2ea23296181" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/set-event_variable_.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/json --- readUrl('classpath://patchclaimpayeerecordsubflowsuccesstest/set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to patch-claimpayee-record-sub-flow" doc:id="f5addf0a-93c7-4cc5-9608-e3f53a28ded5" name="patch-claimpayee-record-sub-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="3e3ca754-c263-4e21-afd3-11e7ed7cf4e8" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import patchclaimpayeerecordsubflowsuccesstest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+
+</mule>

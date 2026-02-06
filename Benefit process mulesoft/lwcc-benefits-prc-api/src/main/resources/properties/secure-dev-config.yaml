@@ -1,0 +1,16 @@
+sfdc:
+  password: "![1br4tf4FEANcwYgWKUspTg==]"
+  consumerkey: "![TtJyyWQ7lzLlgL6GwoITJtITey1M4Vu0776Q4qeJm2a6gvVNgGWQ+TPtxllh+5vOSHL5RrBi9jqb5CEQDrpW7WbUsNo/EzuwPMSpnN006PhI5jDXaRxq27o8KLtGrh57]"  
+  
+httpReq:
+    sfdc:
+        clientId: "![ei5c69ikgGQInHkGZTFewB7jn8HiGl1miCgysMVBLEA=]"
+        clientSecret: "![Fl7glLeExCIQwQlJllZwAJA4+3RScg/2x0tf+e6fNJEsv8J/QTo3n22OBm6Lr0p/It52OT9AJq2gezMboMqIdkpLzWIuDyp8QCgAtRSvrv8=]"
+    lagniappe:
+        clientId: "![ei5c69ikgGQInHkGZTFewB7jn8HiGl1miCgysMVBLEA=]"
+        clientSecret: "![Fl7glLeExCIQwQlJllZwAJA4+3RScg/2x0tf+e6fNJEsv8J/QTo3n22OBm6Lr0p/It52OT9AJq2gezMboMqIdkpLzWIuDyp8QCgAtRSvrv8=]"
+    integ:
+        clientId: "![ei5c69ikgGQInHkGZTFewB7jn8HiGl1miCgysMVBLEA=]"
+        clientSecret: "![Fl7glLeExCIQwQlJllZwAJA4+3RScg/2x0tf+e6fNJEsv8J/QTo3n22OBm6Lr0p/It52OT9AJq2gezMboMqIdkpLzWIuDyp8QCgAtRSvrv8=]"
+
+

@@ -1,0 +1,25 @@
+# JSON Logger Configurations [DO NOT DELETE - Also referenced by core-resources-lib]
+json.logger.application:             
+    name: "${project.artifactId}"
+    version: "${project.version}"
+
+                #  Needed when testing in Studio and app is restarted since resources filtering in pom will not update these props.                                
+project:    
+    artifactId: "${project.artifactId}"
+    version: "${project.version}"
+    name: "${project.name}"
+
+health.verbose.client.id: ""
+
+        # Include environment independent properties below                
+connector:    
+    retries: "3"
+    retryIntervel: "5000"
+    response:    
+        timeout: "120000"
+        
+mq:
+  queue: "cvncv-bodyparts-queue"    
+  
+sfdc:
+    cncbodypart.query: "SELECT DT_Status__c, DT_Claim__r.Name, DT_Body_Part__r.DT_Body_Part_Code__c, DT_Side__c, Id, LastModifiedBy.Alias, LastModifiedDate, DT_Medicare_Rank__c FROM DT_Covered_Non_Covered_Body_Part__c where Id = "

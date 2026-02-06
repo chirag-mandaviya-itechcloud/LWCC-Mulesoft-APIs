@@ -1,0 +1,747 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+		http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+		http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<!-- ============================================== -->
+	<!-- ASYNC JOB WORKER FLOW                          -->
+	<!-- Processes split jobs from VM queue             -->
+	<!-- ============================================== -->
+	<flow name="job-worker-flow"
+		doc:id="job-worker-flow"
+		doc:name="job-worker-flow"
+		maxConcurrency="4">
+
+		<!-- Listen for jobs from VM queue -->
+		<vm:listener doc:name="VM Job Listener"
+			doc:id="vm-job-listener"
+			config-ref="VM_Config"
+			queueName="split-job-queue" />
+
+		<!-- Extract all job details in single transform -->
+		<ee:transform doc:name="Extract Job Variables"
+			doc:id="extract-job-vars">
+			<ee:variables>
+				<ee:set-variable variableName="jobId"><![CDATA[payload.jobId]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId"><![CDATA[payload.correlationId]]></ee:set-variable>
+				<ee:set-variable variableName="claimId"><![CDATA[payload.claimId]]></ee:set-variable>
+				<ee:set-variable variableName="contentDocumentId"><![CDATA[payload.contentDocumentId]]></ee:set-variable>
+				<ee:set-variable variableName="splitParams"><![CDATA[payload.splitParams]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<json-logger:logger
+			doc:name="Log Job Started"
+			doc:id="log-job-started"
+			config-ref="JSON_Logger_Config"
+			message="Async job processing started"
+			tracePoint="START"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "job-worker-flow",
+	step: "JOB_STARTED",
+	jobId: vars.jobId,
+	claimId: vars.claimId,
+	contentDocumentId: vars.contentDocumentId
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<try doc:name="Job Processing Try Block">
+			<!-- Update job status to PROCESSING -->
+			<flow-ref doc:name="Update Job Status - Processing"
+				name="update-job-status-subflow" />
+
+			<!-- Step 1: Validate claim exists -->
+			<flow-ref doc:name="Validate Claim"
+				name="validate-claim-subflow" />
+			<flow-ref doc:name="Update Progress - Claim Validated"
+				name="update-job-progress-subflow" />
+
+			<!-- Step 2: Validate document is linked to claim -->
+			<flow-ref doc:name="Validate Document Link"
+				name="validate-document-link-subflow" />
+			<flow-ref doc:name="Update Progress - Document Validated"
+				name="update-job-progress-subflow" />
+
+			<!-- Step 3: Fetch content version details -->
+			<flow-ref doc:name="Fetch Content Version"
+				name="fetch-content-version-subflow" />
+			<flow-ref doc:name="Update Progress - Content Fetched"
+				name="update-job-progress-subflow" />
+
+			<!-- Step 4: Process the split -->
+			<flow-ref doc:name="Process Split"
+				name="process-split-subflow" />
+			<!-- Capture upload results for callback -->
+			<set-variable doc:name="Capture Created Parts"
+				doc:id="capture-created-parts"
+				variableName="createdParts"
+				value="#[payload.parts]" />
+
+			<set-variable doc:name="Capture Full Result"
+				doc:id="capture-full-result"
+				variableName="splitResult"
+				value="#[payload]" />
+
+			<logger doc:name="Log Result Captured"
+				level="DEBUG"
+				message="#['JOB_RESULT_CAPTURED | jobId=' ++ vars.jobId ++ ' | partsCreated=' ++ (sizeOf(vars.createdParts) as String)]" />
+
+			<!-- Step 5: Update job as completed -->
+			<set-variable doc:name="Set Job Status Completed"
+				variableName="jobStatus"
+				value="COMPLETED" />
+			<flow-ref doc:name="Update Job Status - Completed"
+				name="update-job-status-subflow" />
+
+			<json-logger:logger
+				doc:name="Log Job Completed"
+				doc:id="log-job-completed"
+				config-ref="JSON_Logger_Config"
+				message="Async job completed successfully"
+				tracePoint="END"
+				priority="INFO">
+				<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "job-worker-flow",
+	step: "JOB_COMPLETED",
+	jobId: vars.jobId,
+	partsCreated: sizeOf(vars.createdParts default [])
+}]]]></json-logger:content>
+			</json-logger:logger>
+
+			<!-- Send callback to Salesforce Apex endpoint -->
+			<choice doc:name="Check Callback Enabled">
+				<when expression="#[p('salesforce.callback.enabled') == 'true' or p('salesforce.callback.enabled') == true]">
+					<async doc:name="Async Callback">
+						<flow-ref doc:name="Send Salesforce Callback"
+							name="salesforce-callback-subflow" />
+					</async>
+				</when>
+				<otherwise>
+					<logger doc:name="Log Callback Disabled"
+						level="DEBUG"
+						message="#['CALLBACK_DISABLED | jobId=' ++ vars.jobId]" />
+				</otherwise>
+			</choice>
+
+			<error-handler>
+				<on-error-continue doc:name="Handle Job Failure">
+					<!-- Capture comprehensive error details for debugging -->
+					<set-variable doc:name="Set Error Details (Comprehensive)"
+						variableName="errorDetails"
+						value="#[output application/java --- {
+							errorCode: error.errorType.identifier,
+							errorNamespace: error.errorType.namespace,
+							message: error.description,
+							detailedMessage: error.detailedDescription default null,
+							cause: error.cause.description default null,
+							causeType: error.cause.errorType.identifier default null,
+							failedComponent: error.failingComponent default null,
+							timestamp: now() as String {format: 'yyyy-MM-dd\'T\'HH:mm:ssXXX'}
+						}]" />
+
+					<json-logger:logger
+						doc:name="Log Job Failed (Enhanced)"
+						doc:id="log-job-failed"
+						config-ref="JSON_Logger_Config"
+						message="Async job failed"
+						tracePoint="EXCEPTION"
+						priority="ERROR">
+						<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "job-worker-flow",
+	step: "JOB_FAILED",
+	jobId: vars.jobId,
+	claimId: vars.claimId default null,
+	contentDocumentId: vars.contentDocumentId default null,
+	errorDetails: {
+		errorType: error.errorType.identifier default "unknown",
+		errorNamespace: error.errorType.namespace default "unknown",
+		message: error.description default "no description",
+		detailedMessage: error.detailedDescription default null,
+		cause: error.cause.description default null,
+		causeType: error.cause.errorType.identifier default null,
+		failedComponent: error.failingComponent default "unknown"
+	}
+}]]]></json-logger:content>
+					</json-logger:logger>
+
+					<!-- Log exception details if available -->
+					<choice doc:name="Check If Exception Exists">
+						<when expression="#[error.cause != null]">
+							<logger doc:name="Log Exception Details"
+								level="ERROR"
+								message="#[output text/plain ---
+									'EXCEPTION_DETAILS | jobId=' ++ vars.jobId ++
+									' | exception=' ++ write(error.cause, 'application/json', {'indent': false})]" />
+						</when>
+					</choice>
+
+					<!-- Update job status to FAILED -->
+					<set-variable doc:name="Set Job Status Failed"
+						variableName="jobStatus"
+						value="FAILED" />
+
+					<flow-ref doc:name="Update Job Status - Failed"
+						name="update-job-status-subflow" />
+
+					<!-- Cleanup any partially uploaded files -->
+					<flow-ref doc:name="Cleanup Partial Upload"
+						name="cleanup-partial-upload-subflow" />
+
+				<!-- Send failure callback to Salesforce -->
+					<choice doc:name="Check Callback Enabled for Failure">
+						<when expression="#[p('salesforce.callback.enabled') == 'true' or p('salesforce.callback.enabled') == true]">
+							<async doc:name="Async Failure Callback">
+								<flow-ref doc:name="Send Salesforce Failure Callback"
+									name="salesforce-failure-callback-subflow" />
+							</async>
+						</when>
+					</choice>
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- UPDATE JOB STATUS SUBFLOW                      -->
+	<!-- Updates job status in Object Store             -->
+	<!-- ============================================== -->
+	<sub-flow name="update-job-status-subflow"
+		doc:id="update-job-status-subflow"
+		doc:name="update-job-status-subflow">
+
+		<ee:transform doc:name="Build Job State">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	jobId: vars.jobId,
+	status: vars.jobStatus default "PROCESSING",
+	claimId: vars.claimId,
+	contentDocumentId: vars.contentDocumentId,
+	sourceContentVersionId: vars.sourceContentVersionId,
+	correlationId: vars.correlationId,
+	createdAt: vars.jobCreatedAt default now(),
+	updatedAt: now(),
+	progress: vars.jobProgress default {
+		currentStep: "INITIALIZING",
+		percentComplete: 0,
+		message: "Job started"
+	},
+	(result: {
+		partsCreated: sizeOf(vars.createdParts default []),
+		parts: vars.createdParts
+	}) if vars.jobStatus == "COMPLETED",
+	(error: vars.errorDetails) if vars.jobStatus == "FAILED"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<os:store doc:name="Store Job State"
+			key="#[vars.jobId]"
+			objectStore="Jobs_Object_Store">
+			<os:value><![CDATA[#[payload]]]></os:value>
+		</os:store>
+
+		<logger doc:name="Log Job Status Update"
+			level="DEBUG"
+			message="#['JOB_STATUS_UPDATE | jobId=' ++ vars.jobId ++ ' | status=' ++ (vars.jobStatus default 'PROCESSING')]" />
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- UPDATE JOB PROGRESS SUBFLOW                    -->
+	<!-- Updates progress during job execution          -->
+	<!-- ============================================== -->
+	<sub-flow name="update-job-progress-subflow"
+		doc:id="update-job-progress-subflow"
+		doc:name="update-job-progress-subflow">
+
+		<ee:transform doc:name="Calculate Progress">
+			<ee:variables>
+				<ee:set-variable variableName="jobProgress"><![CDATA[%dw 2.0
+output application/java
+var steps = ["VALIDATING_CLAIM", "VALIDATING_DOCUMENT", "FETCHING_CONTENT", "SPLITTING", "UPLOADING", "COMPLETED"]
+var currentStepIndex = (steps indexOf vars.currentStep) default 0
+---
+{
+	currentStep: vars.currentStep default "PROCESSING",
+	percentComplete: ((currentStepIndex + 1) / sizeOf(steps) * 100) as Number {format: "0"},
+	message: vars.progressMessage default "Processing...",
+	(partsUploaded: vars.partsUploaded) if vars.partsUploaded?,
+	(totalParts: vars.totalParts) if vars.totalParts?
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<flow-ref doc:name="Persist Progress"
+			name="update-job-status-subflow" />
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- SEND CALLBACK SUBFLOW                          -->
+	<!-- Sends webhook callback on job completion       -->
+	<!-- ============================================== -->
+	<!-- ============================================== -->
+	<!-- SALESFORCE CALLBACK SUBFLOW                    -->
+	<!-- Sends results to Salesforce Apex REST endpoint -->
+	<!-- ============================================== -->
+	<sub-flow name="salesforce-callback-subflow"
+		doc:id="salesforce-callback-subflow"
+		doc:name="salesforce-callback-subflow">
+
+		<json-logger:logger
+			doc:name="Log Callback Start"
+			doc:id="log-callback-start"
+			config-ref="JSON_Logger_Config"
+			message="Sending callback to Salesforce"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "salesforce-callback-subflow",
+	step: "CALLBACK_START",
+	jobId: vars.jobId,
+	claimId: vars.claimId,
+	partsCount: sizeOf(vars.createdParts default [])
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Build Salesforce Apex-compatible payload -->
+		<ee:transform doc:name="Build Salesforce Callback Payload">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	claimId: vars.claimId as String,
+	sourceContentDocumentId: vars.contentDocumentId as String,
+	sourceContentVersionId: vars.contentVersion.Id as String,
+	originalFileName: (vars.contentVersion.Title as String) ++ "." ++ (vars.contentVersion.FileExtension as String),
+	originalSizeBytes: vars.contentVersion.ContentSize as Number,
+	originalPageCount: vars.pdfPageCount as Number,
+	partCount: sizeOf(vars.createdParts default []),
+	status: vars.jobStatus default "COMPLETED",
+	dryRun: false,
+	parts: vars.createdParts default [] map ((part, index) -> {
+		partNumber: part.partNumber as Number,
+		pageStart: part.pageStart as Number,
+		pageEnd: part.pageEnd as Number,
+		pageCount: part.pageCount as Number,
+		sizeBytes: part.sizeBytes as Number,
+		sizeMb: part.sizeMb as Number,
+		contentVersionId: part.contentVersionId as String,
+		contentDocumentId: part.contentDocumentId as String,
+		contentDocumentLinkId: part.contentDocumentLinkId as String,
+		fileName: part.fileName as String
+	}),
+	correlationId: vars.correlationId as String,
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<set-variable doc:name="Store Callback Payload"
+			variableName="callbackPayload"
+			value="#[payload]" />
+
+		<try doc:name="Try Send Callback">
+			<!-- Get SF access token via Java JWT helper (same method used by file download) -->
+			<ee:transform doc:name="Get Token Info via JWT"
+				doc:id="get-token-info">
+				<ee:variables>
+					<ee:set-variable variableName="tokenInfo"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::SalesforceFileDownloader
+---
+SalesforceFileDownloader::getTokenInfo(
+	p('sfdc.endpoint'),
+	p('secure::sfdc.consumerkey'),
+	p('sfdc.principal'),
+	(mule.home default '') ++ '/apps/' ++ (app.name default 'lwcc-sf-doc-split-sys-api') ++ '/' ++ p('mule.env') ++ '-jks.jks',
+	p('secure::sfdc.password'),
+	p('sfdc.alias')
+)]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+
+			<!-- Extract token and instance URL from tokenInfo -->
+			<set-variable doc:name="Set SF Access Token"
+				doc:id="set-sf-access-token"
+				variableName="sfAccessToken"
+				value="#[vars.tokenInfo.accessToken]" />
+
+			<set-variable doc:name="Set SF Instance URL"
+				doc:id="set-sf-instance-url"
+				variableName="sfInstanceUrl"
+				value="#[vars.tokenInfo.instanceUrl]" />
+
+			<!-- Restore callback payload -->
+			<set-payload doc:name="Restore Callback Payload"
+				doc:id="restore-callback-payload"
+				value="#[vars.callbackPayload]" />
+
+			<!-- Send HTTP request to Salesforce Apex REST endpoint -->
+			<http:request
+				method="POST"
+				config-ref="Salesforce_REST_Request_config"
+				url="#[vars.sfInstanceUrl ++ '/services/apexrest/' ++ p('salesforce.callback.path')]"
+				doc:name="Send to Salesforce Apex"
+				doc:id="http-send-callback">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[output application/java
+---
+{
+	'Content-Type': 'application/json',
+	'Authorization': 'Bearer ' ++ vars.sfAccessToken,
+	'X-Correlation-Id': vars.correlationId,
+	'X-Job-Id': vars.jobId
+}]]]></http:headers>
+			</http:request>
+
+			<json-logger:logger
+				doc:name="Log Callback Success"
+				doc:id="log-callback-success"
+				config-ref="JSON_Logger_Config"
+				message="Salesforce callback sent successfully"
+				tracePoint="FLOW"
+				priority="INFO">
+				<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "salesforce-callback-subflow",
+	step: "CALLBACK_SUCCESS",
+	jobId: vars.jobId,
+	httpStatusCode: attributes.statusCode
+}]]]></json-logger:content>
+			</json-logger:logger>
+
+			<error-handler>
+				<on-error-continue
+					doc:name="Handle Callback Failure"
+					type="HTTP:CONNECTIVITY, HTTP:TIMEOUT, HTTP:UNAUTHORIZED, HTTP:BAD_REQUEST, HTTP:INTERNAL_SERVER_ERROR">
+
+					<json-logger:logger
+						doc:name="Log Callback Failed"
+						doc:id="log-callback-failed"
+						config-ref="JSON_Logger_Config"
+						message="Salesforce callback failed"
+						tracePoint="EXCEPTION"
+						priority="ERROR">
+						<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "salesforce-callback-subflow",
+	step: "CALLBACK_FAILED",
+	jobId: vars.jobId,
+	errorDetails: {
+		errorType: error.errorType.identifier default "unknown",
+		message: error.description default "unknown"
+	}
+}]]]></json-logger:content>
+					</json-logger:logger>
+
+					<!-- Store failed callback for retry -->
+					<os:store doc:name="Store Failed Callback"
+						key="#['callback-failed-' ++ vars.jobId ++ '-' ++ now() as String {format: 'yyyyMMddHHmmss'}]"
+						objectStore="Failed_Callbacks_Store"
+						failIfPresent="false">
+						<os:value><![CDATA[#[output application/java --- {
+							jobId: vars.jobId,
+							correlationId: vars.correlationId,
+							payload: vars.callbackPayload,
+							failedAt: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"},
+							error: {
+								'type': error.errorType.identifier default "unknown",
+								message: error.description default "unknown"
+							}
+						}]]]></os:value>
+					</os:store>
+
+					<json-logger:logger
+						doc:name="Log Stored for Retry"
+						doc:id="log-callback-retry-queued"
+						config-ref="JSON_Logger_Config"
+						message="Failed callback stored for retry"
+						tracePoint="FLOW"
+						priority="WARN">
+						<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "salesforce-callback-subflow",
+	step: "CALLBACK_RETRY_QUEUED",
+	jobId: vars.jobId,
+	storeName: "Failed_Callbacks_Store"
+}]]]></json-logger:content>
+					</json-logger:logger>
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- CLEANUP PARTIAL UPLOAD SUBFLOW                 -->
+	<!-- Removes partially uploaded files on failure    -->
+	<!-- ============================================== -->
+	<sub-flow name="cleanup-partial-upload-subflow"
+		doc:id="cleanup-partial-upload-subflow"
+		doc:name="cleanup-partial-upload-subflow">
+
+		<choice doc:name="Check for Parts to Clean">
+			<when expression="#[!isEmpty(vars.createdParts default [])]">
+				<logger doc:name="Log Cleanup Start"
+					level="INFO"
+					message="#['CLEANUP_START | jobId=' ++ vars.jobId ++ ' | partsToDelete=' ++ sizeOf(vars.createdParts)]" />
+
+				<foreach doc:name="For Each Created Part"
+					collection="#[vars.createdParts]">
+					<try doc:name="Delete Part Try Block">
+						<!-- Delete ContentDocumentLink first -->
+						<salesforce:delete doc:name="Delete Content Document Link"
+							config-ref="Salesforce_Config">
+							<salesforce:ids><![CDATA[#[[payload.contentDocumentLinkId]]]]></salesforce:ids>
+						</salesforce:delete>
+
+						<!-- Then delete ContentDocument (cascades to ContentVersion) -->
+						<salesforce:delete doc:name="Delete Content Document"
+							config-ref="Salesforce_Config">
+							<salesforce:ids><![CDATA[#[[payload.contentDocumentId]]]]></salesforce:ids>
+						</salesforce:delete>
+
+						<logger doc:name="Log Part Deleted"
+							level="DEBUG"
+							message="#['PART_DELETED | contentDocumentId=' ++ payload.contentDocumentId]" />
+
+						<error-handler>
+							<on-error-continue doc:name="Handle Delete Failure">
+								<logger doc:name="Log Delete Failed"
+									level="WARN"
+									message="#['DELETE_FAILED | contentDocumentId=' ++ payload.contentDocumentId ++ ' | error=' ++ error.description]" />
+							</on-error-continue>
+						</error-handler>
+					</try>
+				</foreach>
+
+				<logger doc:name="Log Cleanup Complete"
+					level="INFO"
+					message="#['CLEANUP_COMPLETE | jobId=' ++ vars.jobId]" />
+			</when>
+			<otherwise>
+				<logger doc:name="Log No Cleanup Needed"
+					level="DEBUG"
+					message="#['NO_CLEANUP_NEEDED | jobId=' ++ vars.jobId]" />
+			</otherwise>
+		</choice>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- JOB EXPIRY CLEANUP FLOW                        -->
+	<!-- Scheduled job to clean up old completed jobs   -->
+	<!-- ============================================== -->
+	<flow name="job-cleanup-scheduler-flow"
+		doc:id="job-cleanup-flow"
+		doc:name="job-cleanup-scheduler-flow">
+
+		<scheduler doc:name="Cleanup Scheduler">
+			<scheduling-strategy>
+				<fixed-frequency frequency="24"
+					timeUnit="HOURS" />
+			</scheduling-strategy>
+		</scheduler>
+
+		<logger doc:name="Log Cleanup Started"
+			level="INFO"
+			message="JOB_CLEANUP_STARTED | Cleaning up expired job records" />
+
+		<!-- Object Store entries expire automatically via TTL -->
+		<!-- This flow can be extended for additional cleanup tasks -->
+
+		<logger doc:name="Log Cleanup Completed"
+			level="INFO"
+			message="JOB_CLEANUP_COMPLETED" />
+
+	</flow>
+
+
+	<!-- ============================================== -->
+	<!-- SALESFORCE FAILURE CALLBACK SUBFLOW            -->
+	<!-- Sends failure notification to Salesforce       -->
+	<!-- ============================================== -->
+	<sub-flow name="salesforce-failure-callback-subflow"
+		doc:id="salesforce-failure-callback-subflow"
+		doc:name="salesforce-failure-callback-subflow">
+
+		<json-logger:logger
+			doc:name="Log Failure Callback Start"
+			doc:id="log-failure-callback-start"
+			config-ref="JSON_Logger_Config"
+			message="Sending failure callback to Salesforce"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "salesforce-failure-callback-subflow",
+	step: "CALLBACK_FAILURE_START",
+	jobId: vars.jobId,
+	claimId: vars.claimId,
+	errorCode: vars.errorDetails.errorCode default "UNKNOWN"
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<ee:transform doc:name="Build Failure Callback Payload">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	claimId: vars.claimId as String,
+	sourceContentDocumentId: vars.contentDocumentId as String,
+	sourceContentVersionId: vars.contentVersion.Id default "" as String,
+	status: "FAILED",
+	error: {
+		errorCode: vars.errorDetails.errorCode default "UNKNOWN_ERROR",
+		message: vars.errorDetails.message default "Processing failed"
+	},
+	correlationId: vars.correlationId as String,
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<try doc:name="Try Send Failure Callback">
+			<!-- Store failure payload for Apex call -->
+			<set-variable doc:name="Store Failure Payload"
+				variableName="failurePayload"
+				value="#[payload]" />
+
+			<!-- Get SF access token via Java JWT helper (same method used by file download) -->
+			<ee:transform doc:name="Get Token Info via JWT"
+				doc:id="get-failure-token-info">
+				<ee:variables>
+					<ee:set-variable variableName="tokenInfo"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::SalesforceFileDownloader
+---
+SalesforceFileDownloader::getTokenInfo(
+	p('sfdc.endpoint'),
+	p('secure::sfdc.consumerkey'),
+	p('sfdc.principal'),
+	(mule.home default '') ++ '/apps/' ++ (app.name default 'lwcc-sf-doc-split-sys-api') ++ '/' ++ p('mule.env') ++ '-jks.jks',
+	p('secure::sfdc.password'),
+	p('sfdc.alias')
+)]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+
+			<!-- Extract token and instance URL from tokenInfo -->
+			<set-variable doc:name="Set SF Access Token"
+				doc:id="set-sf-access-token-failure"
+				variableName="sfAccessToken"
+				value="#[vars.tokenInfo.accessToken]" />
+
+			<set-variable doc:name="Set SF Instance URL"
+				doc:id="set-sf-instance-url-failure"
+				variableName="sfInstanceUrl"
+				value="#[vars.tokenInfo.instanceUrl]" />
+
+			<!-- Send HTTP request to Salesforce Apex REST endpoint -->
+			<http:request
+				method="POST"
+				config-ref="Salesforce_REST_Request_config"
+				url="#[vars.sfInstanceUrl ++ '/services/apexrest/' ++ p('salesforce.callback.path')]"
+				doc:name="Send Failure to Salesforce Apex"
+				doc:id="http-send-failure-callback">
+				<http:body><![CDATA[#[vars.failurePayload]]]></http:body>
+				<http:headers><![CDATA[#[output application/java
+---
+{
+	'Content-Type': 'application/json',
+	'Authorization': 'Bearer ' ++ vars.sfAccessToken,
+	'X-Correlation-Id': vars.correlationId,
+	'X-Job-Id': vars.jobId,
+	'X-Status': 'FAILED'
+}]]]></http:headers>
+			</http:request>
+
+			<json-logger:logger
+				doc:name="Log Failure Callback Sent"
+				doc:id="log-failure-callback-sent"
+				config-ref="JSON_Logger_Config"
+				message="Failure callback sent to Salesforce"
+				tracePoint="FLOW"
+				priority="INFO">
+				<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "salesforce-failure-callback-subflow",
+	step: "CALLBACK_FAILURE_SENT",
+	jobId: vars.jobId
+}]]]></json-logger:content>
+			</json-logger:logger>
+
+			<error-handler>
+				<on-error-continue doc:name="Log Failure Callback Error" type="ANY">
+					<json-logger:logger
+						doc:name="Log Failure Callback Failed"
+						doc:id="log-failure-callback-failed"
+						config-ref="JSON_Logger_Config"
+						message="Failed to send failure callback to Salesforce"
+						tracePoint="EXCEPTION"
+						priority="WARN">
+						<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "salesforce-failure-callback-subflow",
+	step: "CALLBACK_FAILURE_FAILED",
+	jobId: vars.jobId,
+	errorDetails: {
+		errorType: error.errorType.identifier default "unknown",
+		message: error.description default "unknown"
+	}
+}]]]></json-logger:content>
+					</json-logger:logger>
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+	</sub-flow>
+
+</mule>

@@ -1,0 +1,26 @@
+# ============================================
+# Common Configuration (Environment Independent)
+# lwcc-sf-doc-split-exp-api
+# ============================================
+
+json.logger.application:
+  name: "${project.artifactId}"
+  version: "${project.version}"
+
+project:
+  artifactId: "${project.artifactId}"
+  version: "${project.version}"
+  name: "${project.name}"
+
+connector:
+  retries: "3"
+  retryInterval: "5000"
+  response:
+    timeout: "120000"
+
+# System API Connection Settings (common across environments)
+sysapi:
+  basepath: "/sys/sf-doc-split/v1"
+  reconnection:
+    frequency: "2000"
+    attempts: "2"

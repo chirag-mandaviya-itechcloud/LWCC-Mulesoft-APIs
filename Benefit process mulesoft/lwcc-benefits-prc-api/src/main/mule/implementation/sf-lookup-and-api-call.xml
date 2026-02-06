@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="get-claim-payee-id-sub-flow" doc:id="b2a783eb-d31f-47f3-ad20-32f59cc0d82a" >
+		<json-logger:logger doc:name="Log BEFORE  Claim payee lookup" doc:id="0905297b-95d3-40ce-8a58-5237e42abaee" config-ref="JSON_Logger_Config" message="BEFORE  Claim payee lookup" tracePoint="BEFORE_REQUEST">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="8db67e19-9d5f-4769-aa31-9e593c5b7afa">
+				<when expression="#[vars.payeeRecordId != null]">
+				<until-successful maxRetries="${connector.retries}" doc:name="Until Successful" doc:id="32885826-0b1d-46ba-b232-1f65f645c400" millisBetweenRetries="${connector.retryIntervel}">
+					<salesforce:query doc:name="Query Salesforce benefit payee" doc:id="3abb7ada-64a6-41c5-afc0-5a0e0067e67f" config-ref="Salesforce_Config" target='claimPayeeRecordId' targetValue='#[payload[0]["DT_Claim_Payee__c"]]'>
+				<salesforce:salesforce-query><![CDATA[#[p('query.getClaimPayeeId') ++ "'"  ++ vars.'payeeRecordId' ++ "'" ]]]></salesforce:salesforce-query>
+			</salesforce:query>
+		</until-successful>
+				</when>
+			</choice>
+		<json-logger:logger doc:name="Log AFTER  Claim payee lookup" doc:id="764697c1-0463-4d27-8a25-01bcd4baf91d" config-ref="JSON_Logger_Config" message="AFTER  Claim payee lookup" tracePoint="AFTER_REQUEST">
+				<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+			</json-logger:logger>
+	</sub-flow>
+	<flow name="sf-lookup-benefit-payee-id" doc:id="3ed48357-b32e-4752-92fd-784eb5901020" >
+		<json-logger:logger doc:name="Log BEFORE  Benefit payee lookup" doc:id="5ec4f91c-bb73-4b91-a169-ef01a7cd1d45" config-ref="JSON_Logger_Config" message="BEFORE  Benefit payee lookup" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="${connector.retries}" doc:name="Until Successful" doc:id="eafe594b-4d79-47b2-8e3b-104bffea363f" millisBetweenRetries="${connector.retryIntervel}" >
+			<salesforce:query doc:name="Query Salesforce benefit payee" doc:id="5b9ab40a-c7b6-4abc-8476-46a06b92eddf" config-ref="Salesforce_Config" target="payeeRecord">
+			<salesforce:salesforce-query><![CDATA[#[p('query.benefitPayee') ++ "'"  ++ vars.'benefitRecordId' ++ "'" ]]]></salesforce:salesforce-query>
+		</salesforce:query>
+		</until-successful>
+		<json-logger:logger doc:name="AFTER  Benefit payee lookup" doc:id="66b9073a-8cca-4b57-8c95-e61724817a89" config-ref="JSON_Logger_Config" message="AFTER  Benefit payee lookup" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payeeRecord: JSONLoggerModule::stringifyNonJSON(vars.payeeRecord) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</flow>
+	
+	<sub-flow name="get-benefits-sub-flow" doc:id="c5935ef8-c707-41f4-8032-43ad58aba859" >
+		<json-logger:logger doc:name="Log BEFORE  GET Benefit" doc:id="c8818a08-7539-47f9-bffb-f784a54f6a26" config-ref="JSON_Logger_Config" message="BEFORE  GET Benefit" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="6165bf99-54d3-4cf7-9666-1a042675dd52" >
+			<when expression="#[vars.benefitRecordId == null]">
+				<raise-error doc:name="Raise error" doc:id="0bf4b0da-9247-442c-bde6-d119ac80612a" type="APP:BENEFIT-PRC-API" description="Benefit SFID cannot be null."/>
+			</when>
+			<otherwise >
+				<http:request method="${httpReq.sfdcfin.getMethod}" doc:name="GET /benefit SFDC FIN System API Request" doc:id="50e49e38-fa29-4f2f-b01d-16d146cfa70d" config-ref="HTTPS_Request_conf_sfdcfin_sys_api" path="${httpReq.sfdcfin.path.benefit}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" target="getBenefit">
+					<http:headers><![CDATA[#[{
+	"client_secret" : Mule::p('secure::httpReq.lagniappe.clientSecret'),
+	"client_id" : Mule::p('secure::httpReq.lagniappe.clientId'),
+	"x-correlation-id": vars.correlationId
+	
+}]]]></http:headers>
+			<http:query-params><![CDATA[#[{
+	
+	"sfRecordId" : vars.benefitRecordId 
+}]]]></http:query-params>
+				</http:request>
+			</otherwise>
+		</choice>
+		<json-logger:logger doc:name="AFTER  GET Benefit" doc:id="3e757251-ead9-4838-a1b6-b748df086995" config-ref="JSON_Logger_Config" message="AFTER  GET Benefit" tracePoint="AFTER_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    getBenefit: vars.getBenefit 
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</sub-flow>
+	<sub-flow name="get-payees-sub-flow" doc:id="28b5fc30-acf3-4b66-ba16-d478363313ee" >
+		<json-logger:logger doc:name="Log BEFORE  GET Payee Record" doc:id="e1477577-2795-4950-b0d0-6e1aba2a41af" config-ref="JSON_Logger_Config" message="BEFORE  GET Payee Record " >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="00360feb-8696-4bec-a4c9-b58a67328237" >
+			<when expression="#[vars.payeeRecordId == null]">
+				<set-variable value="#[null]" doc:name="Set getPayees Variable" doc:id="68c2e15d-dd82-459d-8dc0-a86823023298" variableName="getPayees"/>
+			</when>
+			<otherwise>
+				<http:request method="${httpReq.sfdcfin.getMethod}" doc:name="GET /payees SFDC FIN System API Request" doc:id="6c83ab4b-ab42-405a-bfd6-2a86c1cf88f0" config-ref="HTTPS_Request_conf_sfdcfin_sys_api" path="${httpReq.sfdcfin.path.payees}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" target="getPayees">
+				<http:headers><![CDATA[#[{
+	"client_secret" : Mule::p('secure::httpReq.lagniappe.clientSecret'),
+	"client_id" : Mule::p('secure::httpReq.lagniappe.clientId'),
+		"x-correlation-id": vars.correlationId
+	
+}]]]></http:headers>
+			<http:query-params><![CDATA[#[{
+	
+	"sfRecordId" : vars.payeeRecordId
+}]]]></http:query-params>
+			</http:request>
+			</otherwise>
+		</choice>
+		<json-logger:logger doc:name="AFTER  GET Payee Record" doc:id="6bc24621-5cc7-44e1-8b03-05577abfad79" config-ref="JSON_Logger_Config" message="AFTER  GET Payee Record" tracePoint="AFTER_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    getPayees: vars.getPayees
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</sub-flow>
+	<sub-flow name="get-claims-sub-flow" doc:id="aefc1908-9397-48f6-ba63-1e54afd4e5b0" >
+		<json-logger:logger doc:name="Log BEFORE  GET Claim" doc:id="da017786-396b-40b0-a829-449c9cd110bf" config-ref="JSON_Logger_Config" message="BEFORE  GET Claim">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="6cbff4c3-d18f-4937-b24e-4365515ace03" >
+			<when expression='#[vars.getBenefit[0]["dtClaim"] == null]'>
+				<raise-error doc:name="Raise error" doc:id="e94c2487-e655-442b-9567-b3a946130f75" type="APP:BENEFIT-PRC-API" description="Claim SFID cannot be null." />
+			</when>
+			<otherwise >
+				<http:request method="${httpReq.sfdc.getMethod}" doc:name="GET /Claims SFDC  System API Request" doc:id="f5ce7ebb-560b-49bd-9d96-8193b218c428" config-ref="HTTPS_Request_conf_sfdc_sys_api" path="${httpReq.sfdc.path.claim}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" target="getClaims">
+			<http:headers><![CDATA[#[{
+	"client_secret" : Mule::p('secure::httpReq.lagniappe.clientSecret'),
+	"client_id" : Mule::p('secure::httpReq.lagniappe.clientId')
+}]]]></http:headers>
+			<http:query-params><![CDATA[#[{
+	
+	"sfRecordId" : vars.getBenefit[0]["dtClaim"]
+}]]]></http:query-params>
+		</http:request>
+			</otherwise>
+		</choice>
+		
+		<json-logger:logger doc:name="AFTER  GET Claim" doc:id="bd5af999-700a-45bb-9bfa-c85c0829a681" config-ref="JSON_Logger_Config" message="AFTER  GET Claim" tracePoint="AFTER_REQUEST">
+			<json-logger:content><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    getClaims: vars.getClaims
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</sub-flow>
+	<sub-flow name="patch-benefits-sub-flow" doc:id="696e2d12-922e-4f72-8c5c-e2e613d30d4f" >
+		<json-logger:logger doc:name="Log BEFORE  PATCH Benefits" doc:id="086722c3-3a7b-45d8-a66c-a248cbae4fa1" config-ref="JSON_Logger_Config" message="BEFORE  PATCH Benefits" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<http:request method="${httpReq.lagniappe.fin.patchMethod}" doc:name="Patch /benefits   System API Request" doc:id="4bf3d84f-6971-4c8b-bdc4-221752f869bd" config-ref="HTTPS_Request_conf_lagniappe_fin_sys_api" path="${httpReq.lagniappe.fin.path.benefits}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+			<http:headers ><![CDATA[#[{
+	"client_secret" : Mule::p('secure::httpReq.lagniappe.clientSecret'),
+	"client_id" : Mule::p('secure::httpReq.lagniappe.clientId')
+}]]]></http:headers>
+		</http:request>
+		<json-logger:logger doc:name="AFTER  PATCH Benefits" doc:id="f7299746-e291-44b6-8a71-8578ac754bbe" config-ref="JSON_Logger_Config" message="AFTER  PATCH Benefits" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</sub-flow>
+	<sub-flow name="patch-claimpayee-sub-flow" doc:id="2ebdd793-2857-40be-8da0-8d087cc4608a" >
+		<json-logger:logger doc:name="Log BEFORE  PATCH claimPayee" doc:id="f9c9f3b3-d98f-4105-b930-3fd5811a1df5" config-ref="JSON_Logger_Config" message="BEFORE  PATCH claimPayee" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<http:request method="${httpReq.lagniappe.fin.patchMethod}" doc:name="Patch /claimPayee   System API Request" doc:id="4c51e17c-722f-40cb-9c01-83b15ceefab3" config-ref="HTTPS_Request_conf_lagniappe_fin_sys_api" path="${httpReq.lagniappe.fin.path.claimPayee}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" >
+			<http:headers ><![CDATA[#[{
+	"client_secret" : Mule::p('secure::httpReq.lagniappe.clientSecret'),
+	"client_id" : Mule::p('secure::httpReq.lagniappe.clientId')
+}]]]></http:headers>
+		</http:request>
+		<json-logger:logger doc:name="AFTER  PATCH claimPayee" doc:id="7090111a-ede0-41d4-a5bf-8dd4f95c8761" config-ref="JSON_Logger_Config" message="AFTER  PATCH claimPayee" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</sub-flow>
+	<sub-flow name="sf-lookup-claim-payee-sub-flow" doc:id="5d5854af-17a8-405c-9263-ceef8dcf079c" >
+		<json-logger:logger doc:name="Log BEFORE  Benefit payee lookup" doc:id="22547ecc-3b21-424c-b1dc-4f13ff674dcd" config-ref="JSON_Logger_Config" message="BEFORE  Benefit payee lookup" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="${connector.retries}" doc:name="Until Successful" doc:id="9b4c04f6-9ae8-4ead-9988-82dff90bbd6d" millisBetweenRetries="${connector.retryIntervel}">
+			<salesforce:query doc:name="Query Salesforce claim payee" doc:id="fa4889ad-42e8-4313-9d8a-2505bc62e43d" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[#[p('query.claimPayee') ++ "'"  ++ vars.'claimPayeeRecordId' ++ "'" ]]]></salesforce:salesforce-query>
+		</salesforce:query>
+		</until-successful>
+		<json-logger:logger doc:name="AFTER  Claim payee lookup" doc:id="1e962ec3-1c72-40c0-93db-1f6720bd340d" config-ref="JSON_Logger_Config" message="AFTER  Claim payee lookup" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payeeRecord: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+	</sub-flow>
+</mule>

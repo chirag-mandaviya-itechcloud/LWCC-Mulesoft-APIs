@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="covnoncov-providers-flow" doc:id="ded6c46d-2b8d-43ab-90f4-d5d71dc7a7de" >
+		<set-variable value="#[payload.operation == 'Update']" doc:name="Set Update Flag" doc:id="425d4b1d-742e-4643-a51a-e06c9c49fecb" variableName="isUpdate" />
+		<ee:transform doc:name="Prepare Store Procedure Call" doc:id="f546386b-2add-4dd0-8079-a5f9247a545f" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable resource="transforms/dwl/prepare_provider_sp_call.dwl" variableName="in_cncprovider_rec" />
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger doc:name="Log BEFORE Call CovNonCov MedProvider SP" doc:id="444febaf-e917-4b93-9fc0-69e532936b49" config-ref="JSON_Logger_Config" message="BEFORE Call CovNonCov MedProvider SP" tracePoint="BEFORE_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(vars.in_cncprovider_rec) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="31b68d93-9402-4feb-bc2d-78b653925bdd" >
+			<db:stored-procedure doc:name="Call CovNonCov MedProvider SP" doc:id="b8ed8891-fce7-412b-a236-2aef40fed0e2" config-ref="Database_Config" queryTimeout="30000" queryTimeoutUnit="MILLISECONDS">
+			<db:sql><![CDATA[{ call pkg_dgtl_exprn_clm_intfc.prc_cov_uncov_providers(:provider_rec, :response) }]]></db:sql>
+			<db:input-parameters><![CDATA[#[{ provider_rec: vars.in_cncprovider_rec }]]]></db:input-parameters>
+			<db:output-parameters>
+				<db:output-parameter key="response" customType="PKG_DGTL_EXPRN_CLM_INTFC.INTF_ERR_REC" />
+			</db:output-parameters>
+		</db:stored-procedure>
+		</until-successful>
+		<ee:transform doc:name="CovNonCov MedProvider SP Response to JSON" doc:id="bcf1e40c-a9f4-468f-aceb-fb77fbd257a3">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger doc:name="Log AFTER Call CovNonCov MedProvider SP" doc:id="cccb7193-3ac6-4fe8-af0e-ccf9e9566616" config-ref="JSON_Logger_Config" message="AFTER Call CovNonCov MedProvider SP" tracePoint="AFTER_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="c6eb729d-fb40-430e-bfa1-14b17d48ef62" >
+			<when expression="#[payload.response[0] == 0 and vars.isUpdate]" >
+				<ee:transform doc:name="Set Success 200 Response" doc:id="e3a41cac-ae74-4404-9b79-c7cf11fd11de" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "code": "OK",
+  "message": "Success"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[200]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<when expression="#[payload.response[0] == 0 and !vars.isUpdate]" >
+				<ee:transform doc:name="Set Success 201 Response" doc:id="72cd77e3-a092-4ae2-bebc-f02e8576f8ab" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "code": "OK",
+  "message": "Success"
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[201]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Set Error Response" doc:id="a28c3527-35a4-4eb9-ac76-15f36a7f29ad" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"error": payload.response[1]
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

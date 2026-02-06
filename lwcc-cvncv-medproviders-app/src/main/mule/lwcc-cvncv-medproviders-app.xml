@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="lwcc-cvncv-medproviders-appFlow" doc:id="378f244b-7ca5-4de1-92b5-e3b6cf748b4c" >
+		<salesforce:replay-channel-listener doc:name="Replay channel listener" doc:id="74a414fa-0e8c-42c6-b3ef-b31d0d78c3dd" config-ref="Salesforce_Config_Integration" replayOption="FROM_LAST_REPLAY_ID" streamingChannel="/data/DT_Covered_Non_Covered_Medical_Provider__ChangeEvent"/>
+		<json-logger:logger doc:name="Log START Processing CovNonCov Medprovider Event" doc:id="e962e827-7352-41f6-81a1-69815ec9d7e0" config-ref="JSON_Logger_Config" message="START Processing CovNonCov Medprovider Event" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<ee:transform doc:name="Capturing Variables for Integration Log" doc:id="c1d2e3f4-5a6b-7c8d-9e0f-1a2b3c4d5e6f">
+			<ee:variables>
+				<ee:set-variable variableName="logRequestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+---
+toBase64(write(payload, "application/json"))]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"Salesforce CovNonCov MedProvider ChangeEvent - lwcc-cvncv-medproviders-app"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Call cvncv-medproviders-app-impl-flow" doc:id="cbf3658e-ffe9-4375-b10a-ae36a370c303" name="cvncv-medproviders-app-impl-flow" />
+		<json-logger:logger doc:name="Log END Processing CovNonCov Medprovider Event" doc:id="a19a97b4-1c36-4111-86ff-fa199410e8a6" config-ref="JSON_Logger_Config" message="END Processing CovNonCov Medprovider Event" tracePoint="END" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<set-variable variableName="logResponseVar" value='#[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+---
+toBase64(write(payload, "application/json"))]' doc:name="Capture Response for Integration Log" doc:id="d4e5f6a7-8b9c-0d1e-2f3a-4b5c6d7e8f9a"/>
+		<async doc:name="Async" doc:id="a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d">
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="b2c3d4e5-6f7a-8b9c-0d1e-2f3a4b5c6d7e" name="create-integration-logs-subflow"/>
+		</async>
+	</flow>
+</mule>

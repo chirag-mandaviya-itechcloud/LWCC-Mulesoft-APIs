@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="froi-generate-request-flow" doc:id="5f7de45e-8370-46c5-aa86-dea184fd1735" >
+		<json-logger:logger doc:name="Log BEFORE Update Froi Indicator In Claim SP" doc:id="41508a77-a2bb-4a9a-83fe-edf48ae6676c" config-ref="JSON_Logger_Config" message="BEFORE Update Froi Indicator In Claim SP" tracePoint="BEFORE_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="f1c00de9-896d-4de7-bdec-b0caa07f6e0b" >
+			<db:stored-procedure doc:name="Call Update FROI Indicator In Claim" doc:id="2387991a-2877-4927-aa2c-a71ca626c728" config-ref="Database_Config" queryTimeout="30000" queryTimeoutUnit="MILLISECONDS">
+				<db:sql ><![CDATA[{ call pkg_dgtl_exprn_clm_intfc.prc_froi(:an_claim_num,:arec_intf_err_rec) }]]></db:sql>
+				<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	an_claim_num: payload.lagniappeClaimNum as Number
+}]]]></db:input-parameters>
+				<db:output-parameters >
+					<db:output-parameter key="arec_intf_err_rec" customType="PKG_DGTL_EXPRN_CLM_INTFC.INTF_ERR_REC"/>
+				</db:output-parameters>
+			</db:stored-procedure>
+		</until-successful>
+		<json-logger:logger doc:name="Log AFTER Update Froi Indicator In Claim SP" doc:id="2e6404e2-85b8-4366-955b-aa91a42d8e99" config-ref="JSON_Logger_Config" message="AFTER Update Froi Indicator In Claim SP" tracePoint="AFTER_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: payload
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="6f1321c4-3e15-4f9a-b407-dab81d635be8" >
+			<when expression="#[payload.arec_intf_err_rec[0] == 0]">
+				<ee:transform doc:name="Build Ok Successfully Response" doc:id="3faab590-ff76-4e3e-afbf-1abf1a4a5281">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "code": "OK",
+  "message": "Success"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Build Server Error Response" doc:id="9d3d8336-c484-4200-9633-3529cd54d017" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "INTERNAL_SERVER_ERROR",
+  "errorMessage": "The server encountered an unexpected condition which prevented it from fulfilling the request.",
+  "transactionId": vars.correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+						<ee:set-attributes ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	httpStatus: 500
+
+}]]></ee:set-attributes>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<flow name="froi-imageright-doc-info-flow" doc:id="1574e091-9acf-438f-bac8-31ad4f933c76" >
+		<set-variable value="#[attributes.queryParams.claimNum]" doc:name="Set Variable claimNum" doc:id="f00d46f5-8ede-4376-b7e7-f06dc43fd95a" variableName="claimNum"/>
+		<json-logger:logger doc:name="Log BEFORE Request Call Get FROI Document Id SP" doc:id="4cd5b44a-5269-4d7b-ab3e-877f0cfa21b7" config-ref="JSON_Logger_Config" message="BEFORE Request Call Get FROI Document Id SP" tracePoint="BEFORE_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    claimNum: attributes.queryParams.claimNum
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="fce3400c-97d4-478d-9e76-93cc7c7be304" >
+			<db:stored-procedure doc:name="Call Get FROI Document Id SP" doc:id="3bcf9a8a-c2aa-4af3-9398-fbb5aac8ea72" config-ref="Database_Config" queryTimeout="30000" queryTimeoutUnit="MILLISECONDS">
+			<db:sql><![CDATA[{ call pkg_ir_utils.p_get_fri_doc_id(:v_drawer,:v_filenumber,:v_documentid,:arec_intf_err_rec) }]]></db:sql>
+			<db:input-parameters><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+	"v_drawer" : "CLMS", 
+	"v_filenumber" : vars.claimNum
+}]]]></db:input-parameters>
+			<db:output-parameters>
+				<db:output-parameter key="v_documentid" type="NUMERIC" />
+				<db:output-parameter key="arec_intf_err_rec" customType="PKG_IR_UTILS.INTF_ERR_REC" />
+			</db:output-parameters>
+		</db:stored-procedure>
+		</until-successful>
+		<ee:transform doc:name="Pass Java to Json Object" doc:id="06a7f2ac-c12c-44e4-b6f5-2c26b1eefe23" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger doc:name="Log AFTER Request Call Get FROI Document Id SP" doc:id="ae87031b-5306-4c11-8f8e-43ea0a76bdbd" config-ref="JSON_Logger_Config" message="AFTER Request Call Get FROI Document Id SP" tracePoint="AFTER_REQUEST">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="1ea85407-0f17-45ac-9d26-98494f1685a2" >
+			<when expression="#[payload.v_documentid == null]">
+				<ee:transform doc:name="Set NOT_FOUND Error Message Response" doc:id="ae7c4afd-2181-4f1f-917f-d1f9fb63998e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "NOT_FOUND",
+  "errorMessage": "The server has not found anything matching the Requested URI",
+  "transactionId": vars.correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[404]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Set documentId Response" doc:id="f858b219-d7c0-480c-8060-219b98677efd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"documentId" : payload.v_documentid as String
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

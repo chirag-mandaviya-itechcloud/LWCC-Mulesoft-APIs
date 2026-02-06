@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns:mule="http://www.mulesoft.org/schema/mule/core" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.mulesoft.org/schema/mule/json-logger" attributeFormDefault="unqualified" elementFormDefault="qualified">
+  <xs:import namespace="http://www.w3.org/XML/1998/namespace"></xs:import>
+  <xs:import namespace="http://www.mulesoft.org/schema/mule/core" schemaLocation="http://www.mulesoft.org/schema/mule/core/current/mule.xsd"></xs:import>
+  <xs:element xmlns:mule="http://www.mulesoft.org/schema/mule/core" substitutionGroup="mule:abstract-shared-extension" name="config">
+    <xs:complexType>
+      <xs:complexContent>
+        <xs:extension base="mule:abstractExtensionType">
+          <xs:annotation>
+            <xs:documentation>Default configuration</xs:documentation>
+          </xs:annotation>
+          <xs:sequence minOccurs="0" maxOccurs="1">
+            <xs:element minOccurs="0" maxOccurs="1" ref="mule:expiration-policy"></xs:element>
+          </xs:sequence>
+          <xs:attribute type="xs:string" use="optional" name="externalDestination"></xs:attribute>
+          <xs:attribute type="xs:string" use="required" name="name">
+            <xs:annotation>
+              <xs:documentation>The identifier of this element used to reference it in other components</xs:documentation>
+            </xs:annotation>
+          </xs:attribute>
+          <xs:attribute type="mule:expressionString" use="optional" default="${json.logger.application.name}" name="applicationName"></xs:attribute>
+          <xs:attribute type="mule:expressionString" use="optional" default="${json.logger.application.version}" name="applicationVersion"></xs:attribute>
+          <xs:attribute type="mule:expressionString" use="required" name="environment"></xs:attribute>
+          <xs:attribute type="mule:expressionBoolean" use="optional" default="true" name="prettyPrint"></xs:attribute>
+          <xs:attribute type="mule:expressionBoolean" use="optional" default="true" name="logLocationInfo"></xs:attribute>
+          <xs:attribute type="mule:expressionBoolean" use="optional" default="true" name="parseContentFieldsInJsonOutput"></xs:attribute>
+          <xs:attribute type="xs:string" use="optional" name="disabledFields"></xs:attribute>
+          <xs:attribute type="xs:string" use="optional" name="contentFieldsDataMasking"></xs:attribute>
+        </xs:extension>
+      </xs:complexContent>
+    </xs:complexType>
+  </xs:element>
+  <xs:element xmlns="http://www.mulesoft.org/schema/mule/json-logger" xmlns:mule="http://www.mulesoft.org/schema/mule/core" type="LoggerType" substitutionGroup="mule:abstract-operator" name="logger"></xs:element>
+  <xs:complexType name="LoggerType">
+    <xs:complexContent>
+      <xs:extension xmlns:mule="http://www.mulesoft.org/schema/mule/core" base="mule:abstractOperatorType">
+        <xs:sequence minOccurs="0" maxOccurs="1">
+          <xs:element type="xs:string" minOccurs="0" maxOccurs="1" name="content"></xs:element>
+        </xs:sequence>
+        <xs:attribute type="xs:string" use="required" name="config-ref">
+          <xs:annotation>
+            <xs:documentation>The name of the configuration to be used to execute this component</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute type="mule:expressionString" use="optional" default="#[correlationId]" name="correlationId"></xs:attribute>
+        <xs:attribute type="mule:expressionString" use="required" name="message"></xs:attribute>
+        <xs:attribute xmlns="http://www.mulesoft.org/schema/mule/json-logger" type="org.mule.extension.jsonlogger.api.pojos.TracePointEnumType" use="optional" default="START" name="tracePoint"></xs:attribute>
+        <xs:attribute xmlns="http://www.mulesoft.org/schema/mule/json-logger" type="org.mule.extension.jsonlogger.api.pojos.PriorityEnumType" use="optional" default="INFO" name="priority"></xs:attribute>
+        <xs:attribute type="mule:expressionString" use="optional" name="category"></xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element xmlns="http://www.mulesoft.org/schema/mule/json-logger" xmlns:mule="http://www.mulesoft.org/schema/mule/core" type="LoggerScopeType" substitutionGroup="mule:abstract-operator" name="logger-scope"></xs:element>
+  <xs:complexType name="LoggerScopeType">
+    <xs:complexContent>
+      <xs:extension xmlns:mule="http://www.mulesoft.org/schema/mule/core" base="mule:abstractOperatorType">
+        <xs:sequence minOccurs="1" maxOccurs="1">
+          <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:group minOccurs="1" ref="mule:messageProcessorOrMixedContentMessageProcessor"></xs:group>
+          </xs:choice>
+        </xs:sequence>
+        <xs:attribute type="mule:expressionString" use="required" name="configurationRef"></xs:attribute>
+        <xs:attribute xmlns="http://www.mulesoft.org/schema/mule/json-logger" type="org.mule.extension.jsonlogger.api.pojos.PriorityEnumType" use="optional" default="INFO" name="priority"></xs:attribute>
+        <xs:attribute xmlns="http://www.mulesoft.org/schema/mule/json-logger" type="org.mule.extension.jsonlogger.api.pojos.ScopeTracePointEnumType" use="optional" default="OUTBOUND_REQUEST_SCOPE" name="scopeTracePoint"></xs:attribute>
+        <xs:attribute type="mule:expressionString" use="optional" name="category"></xs:attribute>
+        <xs:attribute type="mule:expressionString" use="optional" default="#[correlationId]" name="correlationId"></xs:attribute>
+        <xs:attribute type="xs:string" use="optional" name="target">
+          <xs:annotation>
+            <xs:documentation>The name of a variable on which the operation's output will be placed</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attribute type="mule:expressionString" use="optional" default="#[payload]" name="targetValue">
+          <xs:annotation>
+            <xs:documentation>An expression that will be evaluated against the operation's output and the outcome of that expression will be stored in the target variable</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:simpleType name="org.mule.extension.jsonlogger.api.pojos.TracePointEnumType">
+    <xs:union>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="START"></xs:enumeration>
+          <xs:enumeration value="BEFORE_TRANSFORM"></xs:enumeration>
+          <xs:enumeration value="AFTER_TRANSFORM"></xs:enumeration>
+          <xs:enumeration value="BEFORE_REQUEST"></xs:enumeration>
+          <xs:enumeration value="AFTER_REQUEST"></xs:enumeration>
+          <xs:enumeration value="FLOW"></xs:enumeration>
+          <xs:enumeration value="END"></xs:enumeration>
+          <xs:enumeration value="EXCEPTION"></xs:enumeration>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType>
+        <xs:restriction xmlns:mule="http://www.mulesoft.org/schema/mule/core" base="mule:propertyPlaceholderType"></xs:restriction>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+  <xs:simpleType name="org.mule.extension.jsonlogger.api.pojos.PriorityEnumType">
+    <xs:union>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="DEBUG"></xs:enumeration>
+          <xs:enumeration value="TRACE"></xs:enumeration>
+          <xs:enumeration value="INFO"></xs:enumeration>
+          <xs:enumeration value="WARN"></xs:enumeration>
+          <xs:enumeration value="ERROR"></xs:enumeration>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType>
+        <xs:restriction xmlns:mule="http://www.mulesoft.org/schema/mule/core" base="mule:propertyPlaceholderType"></xs:restriction>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+  <xs:simpleType name="org.mule.extension.jsonlogger.api.pojos.ScopeTracePointEnumType">
+    <xs:union>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="DATA_TRANSFORM_SCOPE"></xs:enumeration>
+          <xs:enumeration value="OUTBOUND_REQUEST_SCOPE"></xs:enumeration>
+          <xs:enumeration value="FLOW_LOGIC_SCOPE"></xs:enumeration>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType>
+        <xs:restriction xmlns:mule="http://www.mulesoft.org/schema/mule/core" base="mule:propertyPlaceholderType"></xs:restriction>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+</xs:schema>

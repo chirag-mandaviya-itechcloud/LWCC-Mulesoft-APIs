@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(copy:*)",
+      "Bash(cmd /c \"copy \"\"C:\\\\MuleSoft\\\\LWCC\\\\lwcc-sfdc-sys-api\\\\src\\\\main\\\\resources\\\\dev01-jks.jks\"\" \"\"c:\\\\LWCC AnyPoint\\\\lwcc-sf-doc-split-sys-api\\\\src\\\\main\\\\resources\"\"\")",
+      "Bash(powershell -Command:*)",
+      "Bash(mvn clean install:*)",
+      "Bash(mvn clean compile:*)",
+      "Bash(mvn validate:*)"
+    ]
+  }
+}

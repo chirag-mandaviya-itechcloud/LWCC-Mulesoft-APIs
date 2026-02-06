@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="claims-suite.xml" />
+	<munit:test name="claims-flow-test" doc:id="e1fb0455-4564-43ac-b8b3-0969fc47dee8" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call Claims SP" doc:id="e4474d9d-6551-4720-95b2-ca4ffdd5f973" processor="db:stored-procedure">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f186e731-fadf-45c9-8737-2123a9e4762a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/java  --- readUrl('classpath://claimsflowtest2\mock_payload1.dwl')]" mediaType="application/java " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://claimsflowtest2\mock_variable_10.dwl')]" />
+						<munit-tools:variable key="in_uslhw_rpt_inj_rec" value="#[output application/java --- readUrl('classpath://claimsflowtest2\mock_variable_11.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_injury_tbl" value="#[output application/java --- readUrl('classpath://claimsflowtest2\mock_variable_12.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clmnt_init_contact_rec" value="#[output application/java --- readUrl('classpath://claimsflowtest2\mock_variable_13.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_accident_rec" value="#[output application/java --- readUrl('classpath://claimsflowtest2\mock_variable_14.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/java --- readUrl('classpath://claimsflowtest2\mock_variable_15.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_claim_rec" value="#[output application/java --- readUrl('classpath://claimsflowtest2\mock_variable_16.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_accident_cat_details_rec" value="#[output application/java --- readUrl('classpath://claimsflowtest2\mock_variable_17.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="isUpdate" value="#[output application/json --- readUrl('classpath://claimsflowtest2\mock_variable_18.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="in_claim_work_rec" value="#[output application/java --- readUrl('classpath://claimsflowtest2\mock_variable_19.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="7eea2c77-3ab6-44af-842e-f1a3e3c0ed27" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://claimsflowtest2\set-event_payload1.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://claimsflowtest2\set-event_attributes1.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://claimsflowtest2\set-event_variable_2.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/java --- readUrl('classpath://claimsflowtest2\set-event_variable_3.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to claims-flow" doc:id="6db5f3db-d793-4f28-9dc2-e8511381fa16" name="claims-flow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="46490ab7-e260-4f1a-b4f5-e5aa2c35fee1" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import claimsflowtest2::assert_expression_payload1
+---
+assert_expression_payload1::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log AFTER Call Claims SP" doc:id="c2b65514-7690-49d8-8df5-18850ba2906a" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="0f5f4ec6-86eb-4b00-a7fe-9aa6117201bf" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

@@ -1,0 +1,30 @@
+{
+  "headers": {
+    "client_id": "0oadu1v29xL5bCk9W697",
+    "client_secret": "8jQuhinEtypykiljFsZbRICMoqE352GW5oSUGJvsbVM7NcpbL9qaB1rl7uwUTMJ2",
+    "content-type": "application/json",
+    "user-agent": "PostmanRuntime/7.39.0",
+    "accept": "*/*",
+    "postman-token": "22e16a3c-469d-44a6-a8f1-500f97587a27",
+    "host": "localhost:8081",
+    "accept-encoding": "gzip, deflate, br",
+    "connection": "keep-alive",
+    "content-length": "4933"
+  },
+  "clientCertificate": null,
+  "method": "POST",
+  "scheme": "http",
+  "queryParams": {},
+  "requestUri": "/api/claim",
+  "queryString": "",
+  "version": "HTTP/1.1",
+  "maskedRequestPath": "/claim",
+  "listenerPath": "/api/*",
+  "relativePath": "/api/claim",
+  "localAddress": "/127.0.0.1:8081",
+  "uriParams": {},
+  "rawRequestUri": "/api/claim",
+  "rawRequestPath": "/api/claim",
+  "remoteAddress": "/127.0.0.1:58270",
+  "requestPath": "/api/claim"
+}

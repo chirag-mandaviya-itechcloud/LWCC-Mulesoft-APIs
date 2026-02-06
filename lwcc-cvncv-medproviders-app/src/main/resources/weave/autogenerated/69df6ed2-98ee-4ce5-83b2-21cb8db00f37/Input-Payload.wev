@@ -1,0 +1,13 @@
+%dw 2.0
+
+type auto_69df6ed2_98ee_4ce5_83b2_21cb8db00f37_Input_Payload = {|
+  data?: {|
+    payload?: String, 
+    event?: {|
+      createdDate?: DateTime, 
+      replayId?: Number
+    |}
+  |}, 
+  channel?: String
+|}
+

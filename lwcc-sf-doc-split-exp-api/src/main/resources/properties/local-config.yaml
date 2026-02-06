@@ -1,0 +1,21 @@
+# ============================================
+# Local Environment Configuration
+# lwcc-sf-doc-split-exp-api
+# ============================================
+
+http:
+  port: "8081"
+
+mule:
+  env: "local"
+
+# API Manager Autodiscovery ID (not used for local)
+api:
+  id: "0"
+  name: "lwcc-sf-doc-split-exp-api"
+  version: "v1"
+
+# System API Connection (uses CloudHub dev02 for local testing)
+sysapi:
+  host: "lwcc-sf-doc-split-sys-api-dev02-wtq68e.vhj0p8.usa-e1.cloudhub.io"
+  port: "443"

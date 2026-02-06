@@ -1,0 +1,7 @@
+{
+  "errorCode": "BAD_REQUEST",
+  "errorMessage": "FAILURE",
+  "errorDescription": "claimId is required and cannot be blank",
+  "transactionId": "exp-12345-abcde",
+  "timeStamp": "2026-01-22T10:30:00.000Z"
+}

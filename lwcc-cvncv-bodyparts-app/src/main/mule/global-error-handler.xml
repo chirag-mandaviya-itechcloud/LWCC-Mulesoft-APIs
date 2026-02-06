@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule
+	xmlns:customlogger="http://www.mulesoft.org/schema/mule/customlogger"
+	xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+	xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/customlogger http://www.mulesoft.org/schema/mule/customlogger/current/mule-customlogger.xsd">
+	<error-handler name="globalError_Handler" doc:id="b714bd12-2f1e-443e-a6ce-fc8deed47b71" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="fd334a58-7fd9-4fbe-ac47-dfe74417c307" >
+			<ee:transform doc:name="Set FAILURE Response" doc:id="1209cbe1-eb20-4568-a739-f42f41652362" >
+				<ee:message >
+					<ee:set-payload resource="transforms/dwl/error-response.dwl" />
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="exceptionVar"><![CDATA[%dw 2.0
+output application/json
+---
+error.detailedDescription default ""]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<set-variable value='#[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+---
+toBase64(write(payload, "application/json"))]' doc:name="Set Error Response as Variable" doc:id="ab069de7-1fe9-4dd8-b14b-3c54ea866033" variableName="logResponseVar"/>
+			<json-logger:logger doc:name="Log ERROR" doc:id="220761c5-ddd8-4e00-b1f6-95354050c8d3" config-ref="JSON_Logger_Config" message="ERROR" tracePoint="EXCEPTION" priority="ERROR">
+				<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+			</json-logger:logger>
+			<async doc:name="Async" doc:id="58fcc20e-a335-48eb-ae6a-e088c5db7bc8">
+				<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="0188be60-d64a-4c4c-a413-038dff873741" name="create-integration-logs-subflow"/>
+			</async>
+		</on-error-propagate>
+	</error-handler>
+
+
+</mule>

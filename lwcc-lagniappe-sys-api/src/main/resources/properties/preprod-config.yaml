@@ -1,0 +1,24 @@
+api: 
+    id: "20027839"         # replace with real id once added to api manager        
+    clientId: ""
+    clientSecret: ""
+          # API Configurations        
+    name: "${project.name}"
+    version: "${api.version}"
+  
+http: 
+    port: "8081"
+  
+httpsRequest: 
+    host: "replace with actual values"
+    port: "443"
+    path: ""
+    reconnection: 
+        frequency: "2000"
+        attempts: "2" 
+    clientId: "replace with actual values"
+    clientSecret: "replace with actual values"
+        
+db: 
+    sid: "TEST2"
+    port: "1521" 

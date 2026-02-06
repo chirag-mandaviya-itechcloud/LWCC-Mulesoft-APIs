@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="2e038ff2-c66a-413d-b41f-02c7a1c9439a">
+		<http:listener-connection host="localhost" port="8081">
+		</http:listener-connection>
+	</http:listener-config>
+	<flow name="lwcc-cvncv-bodyparts-app-flow" doc:id="31622795-a66f-41fd-8479-1d4d7b350fba" >
+		<!-- [STUDIO:"Replay channel listener"]<salesforce:replay-channel-listener doc:name="Replay channel listener" doc:id="e9f0a775-9276-4a9f-9e9b-57a420902751" config-ref="Salesforce_Config_Intergration" streamingChannel="/data/DT_Covered_Non_Covered_Body_Part__ChangeEvent" replayOption="FROM_LAST_REPLAY_ID"/> [STUDIO] -->
+		<http:listener doc:name="Listener" doc:id="18eade90-c4a3-4b01-8f47-92ffb484e0e0" config-ref="HTTP_Listener_config" path="/api/*"/>
+		<json-logger:logger doc:name="Log START Processing CovNonCov Bodypart Event" doc:id="a5e22ec7-5a6e-4d71-8cf0-50bf87e441ef" config-ref="JSON_Logger_Config" message="START Processing CovNonCov Bodypart Event">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<ee:transform doc:name="Capturing Variables for Integration Log" doc:id="c1d2e3f4-5a6b-7c8d-9e0f-1a2b3c4d5e6f">
+			<ee:variables>
+				<ee:set-variable variableName="logRequestVar"><![CDATA[%dw 2.0
+import * from dw::core::Binaries
+output application/json
+---
+//toBase64(write(payload, "application/json"))
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="methodVar"><![CDATA[%dw 2.0
+output application/json
+---
+"Salesforce CovNonCov BodyPart ChangeEvent - lwcc-cvncv-bodyparts-app"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="1dde75ba-2086-4aea-bdb3-b64bf2760c5f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"payload": "test"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<!-- [STUDIO:"Call cvncv-bodyparts-app-impl-flow"]<flow-ref doc:name="Call cvncv-bodyparts-app-impl-flow" doc:id="539b8a1d-5602-42fd-80e8-3022b19539ec" name="cvncv-bodyparts-app-impl-flow"/> [STUDIO] -->
+		<json-logger:logger doc:name="Log END Processing CovNonCov Bodypart Event" doc:id="34762b29-7b54-4833-be08-758b0230d690" config-ref="JSON_Logger_Config" message="END Processing CovNonCov Bodypart Event" tracePoint="END">
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload)
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<set-variable variableName="logResponseVar" value='#[%dw 2.0&#10;import * from dw::core::Binaries&#10;output application/json&#10;---&#10;//toBase64(write(payload, "application/json"))&#10;payload]' doc:name="Capture Response for Integration Log" doc:id="d4e5f6a7-8b9c-0d1e-2f3a-4b5c6d7e8f9a"/>
+		<async doc:name="Async" doc:id="a1b2c3d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d">
+			<flow-ref doc:name="Call POST /integrationLogs int-log-sfdc-sys API" doc:id="b2c3d4e5-6f7a-8b9c-0d1e-2f3a4b5c6d7e" name="create-integration-logs-subflow"/>
+		</async>
+	</flow>
+</mule>

@@ -1,0 +1,31 @@
+#%RAML 1.0 DataType
+
+description: Response for document split job submission
+type: object
+properties:
+  jobId:
+    description: Unique job identifier
+    type: string
+    required: true
+    example: "job_29496397-16d2-4713-8bfd-e8cea88c470e"
+  status:
+    description: Current job status
+    type: string
+    enum: [ACCEPTED, VALIDATING, DOWNLOADING, SPLITTING, UPLOADING, COMPLETED, FAILED]
+    required: true
+    example: "ACCEPTED"
+  statusUrl:
+    description: URL to poll for job status
+    type: string
+    required: true
+    example: "/split-jobs/job_29496397-16d2-4713-8bfd-e8cea88c470e"
+  createdAt:
+    description: Job creation timestamp (ISO 8601)
+    type: datetime
+    required: true
+    example: "2026-02-05T04:58:08Z"
+  message:
+    description: Human-readable status message
+    type: string
+    required: true
+    example: "Split job accepted and queued for processing"

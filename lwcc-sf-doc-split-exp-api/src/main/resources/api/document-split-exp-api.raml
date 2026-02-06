@@ -1,0 +1,83 @@
+#%RAML 1.0
+title: LWCC SF Document Split Experience API
+version: v1
+
+mediaType: application/json
+
+description: |
+  Experience API for splitting Salesforce documents.
+  Accepts claimId and documentId in request body and proxies to the System API.
+
+# =============================================================================
+# TRAITS - Reusable behavior patterns
+# =============================================================================
+traits:
+  client-id-required: !include traits/client-id-required.raml
+  correlation-id: !include traits/correlation-id.raml
+
+# =============================================================================
+# TYPES - Data type definitions
+# =============================================================================
+types:
+  DocumentSplitRequest: !include types/DocumentSplitRequest.raml
+  DocumentSplitResponse: !include types/DocumentSplitResponse.raml
+  ErrorResponse: !include types/ErrorResponse.raml
+  HealthResponse: !include types/HealthResponse.raml
+
+# =============================================================================
+# RESOURCES - API Endpoints
+# =============================================================================
+
+/healthcheck:
+  displayName: Health Check
+  get:
+    description: Check API health status (public endpoint - no authentication required)
+    responses:
+      200:
+        body:
+          application/json:
+            type: HealthResponse
+            example: !include examples/health-response.json
+
+/documents:
+  /split:
+    displayName: Split Document
+    description: Initiates document split processing
+    is: [client-id-required, correlation-id]
+    post:
+      displayName: Split Document
+      description: |
+        Accepts claimId and documentId in request body and proxies to SF Doc Split System API.
+        The forceRefresh parameter defaults to true if not provided.
+      body:
+        application/json:
+          type: DocumentSplitRequest
+          example: !include examples/document-split-request.json
+      responses:
+        202:
+          description: Split job accepted and queued for processing
+          body:
+            application/json:
+              type: DocumentSplitResponse
+              example: !include examples/document-split-response.json
+        400:
+          description: Bad Request - Validation error
+          body:
+            application/json:
+              type: ErrorResponse
+              example: !include examples/error-response.json
+        404:
+          description: Claim or document not found
+          body:
+            application/json:
+              type: ErrorResponse
+        500:
+          description: Internal Server Error
+          body:
+            application/json:
+              type: ErrorResponse
+        502:
+          description: System API Error
+          body:
+            application/json:
+              type: ErrorResponse

@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+
+    <!-- =====================================================
+         DOCUMENT SPLIT IMPLEMENTATION FLOW
+         ===================================================== -->
+
+    <flow name="document-split-flow" doc:id="document-split-flow">
+        <!-- Extract and validate request fields -->
+        <ee:transform doc:name="Extract Request Fields" doc:id="extract-request-fields">
+            <ee:variables>
+                <ee:set-variable variableName="claimId"><![CDATA[%dw 2.0
+output application/java
+---
+trim(payload.claimId default "")]]></ee:set-variable>
+                <ee:set-variable variableName="documentId"><![CDATA[%dw 2.0
+output application/java
+---
+trim(payload.documentId default "")]]></ee:set-variable>
+                <ee:set-variable variableName="forceRefresh"><![CDATA[%dw 2.0
+output application/java
+---
+if (payload.forceRefresh == null) true else payload.forceRefresh]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+
+        <!-- Validate claimId -->
+        <choice doc:name="Validate claimId" doc:id="validate-claim-id">
+            <when expression="#[isEmpty(vars.claimId)]">
+                <raise-error
+                    doc:name="Raise claimId Error"
+                    doc:id="raise-claim-id-error"
+                    type="APP:VALIDATION_ERROR"
+                    description="claimId is required and cannot be blank" />
+            </when>
+            <otherwise>
+                <logger level="DEBUG" message="claimId is valid" doc:name="claimId Valid" doc:id="claim-id-valid" />
+            </otherwise>
+        </choice>
+
+        <!-- Validate documentId -->
+        <choice doc:name="Validate documentId" doc:id="validate-document-id">
+            <when expression="#[isEmpty(vars.documentId)]">
+                <raise-error
+                    doc:name="Raise documentId Error"
+                    doc:id="raise-document-id-error"
+                    type="APP:VALIDATION_ERROR"
+                    description="documentId is required and cannot be blank" />
+            </when>
+            <otherwise>
+                <logger level="DEBUG" message="documentId is valid" doc:name="documentId Valid" doc:id="document-id-valid" />
+            </otherwise>
+        </choice>
+
+        <!-- Log before System API call -->
+        <json-logger:logger
+            doc:name="Log Before SYS API"
+            doc:id="log-before-sys-api"
+            config-ref="JSON_Logger_Config"
+            message="Calling SF Doc Split System API"
+            tracePoint="BEFORE_REQUEST"
+            priority="INFO">
+            <json-logger:content><![CDATA[#[output application/json
+---
+{
+    correlationId: vars.correlationId,
+    claimId: vars.claimId,
+    documentId: vars.documentId,
+    forceRefresh: vars.forceRefresh
+}]]]></json-logger:content>
+        </json-logger:logger>
+
+        <!-- Build SYS API path for async job submission -->
+        <set-variable
+            variableName="sysApiPath"
+            value="#['/claims/' ++ vars.claimId ++ '/documents/' ++ vars.documentId ++ '/split-jobs']"
+            doc:name="Set SYS API Path"
+            doc:id="set-sys-api-path" />
+
+        <!-- Set empty payload for System API call -->
+        <set-payload value="#[null]" doc:name="Clear Payload" doc:id="clear-payload" />
+
+        <!-- Call SF Doc Split System API -->
+        <http:request
+            doc:name="POST SF Doc Split System API"
+            doc:id="http-request-sf-doc-split-sys"
+            config-ref="HTTP_Request_SF_Doc_Split_Sys_API"
+            method="POST"
+            path="#[vars.sysApiPath]">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+    "Accept": "application/json",
+    "X-Correlation-ID": vars.correlationId
+}]]]></http:headers>
+        </http:request>
+
+        <!-- Store response status -->
+        <set-variable
+            variableName="httpStatus"
+            value="#[attributes.statusCode]"
+            doc:name="Set HTTP Status"
+            doc:id="set-http-status" />
+
+        <!-- Log after System API call -->
+        <json-logger:logger
+            doc:name="Log After SYS API"
+            doc:id="log-after-sys-api"
+            config-ref="JSON_Logger_Config"
+            message="SF Doc Split System API Response"
+            tracePoint="AFTER_REQUEST"
+            priority="INFO">
+            <json-logger:content><![CDATA[#[output application/json
+---
+{
+    correlationId: vars.correlationId,
+    httpStatus: vars.httpStatus
+}]]]></json-logger:content>
+        </json-logger:logger>
+
+        <!-- Error Handler -->
+        <error-handler>
+            <!-- Validation errors -->
+            <on-error-propagate
+                type="APP:VALIDATION_ERROR"
+                doc:name="On Validation Error"
+                doc:id="on-validation-error">
+                <ee:transform doc:name="Build 400 Response" doc:id="build-400-response">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    timestamp: now() >> "Asia/Kolkata",
+    correlationId: vars.correlationId default correlationId,
+    errorCode: "VALIDATION_ERROR",
+    message: error.description,
+    retryable: false
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <json-logger:logger
+                    doc:name="Log Validation Error"
+                    doc:id="log-validation-error"
+                    config-ref="JSON_Logger_Config"
+                    message="Validation Error"
+                    tracePoint="EXCEPTION"
+                    priority="ERROR">
+                    <json-logger:content><![CDATA[#[output application/json
+---
+{
+    correlationId: vars.correlationId default correlationId,
+    errorCode: "VALIDATION_ERROR",
+    errorMessage: error.description,
+    httpStatus: 400
+}]]]></json-logger:content>
+                </json-logger:logger>
+            </on-error-propagate>
+
+            <!-- HTTP errors from System API -->
+            <on-error-propagate
+                type="HTTP:*"
+                doc:name="On HTTP Error"
+                doc:id="on-http-error">
+                <ee:transform doc:name="Build Error Response" doc:id="build-http-error-response">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var statusCode = error.exception.errorMessage.attributes.statusCode default 502
+---
+{
+    timestamp: now() >> "Asia/Kolkata",
+    correlationId: vars.correlationId default correlationId,
+    errorCode: if (statusCode == 404) "NOT_FOUND"
+               else if (statusCode == 400) "BAD_REQUEST"
+               else "SYSTEM_API_ERROR",
+    message: error.description default "System API error",
+    retryable: statusCode >= 500
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[%dw 2.0
+output application/java
+---
+error.exception.errorMessage.attributes.statusCode default 502]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <json-logger:logger
+                    doc:name="Log HTTP Error"
+                    doc:id="log-http-error"
+                    config-ref="JSON_Logger_Config"
+                    message="System API Error"
+                    tracePoint="EXCEPTION"
+                    priority="ERROR">
+                    <json-logger:content><![CDATA[#[output application/json
+---
+{
+    correlationId: vars.correlationId default correlationId,
+    errorCode: payload.errorCode,
+    errorMessage: error.description,
+    httpStatus: vars.httpStatus
+}]]]></json-logger:content>
+                </json-logger:logger>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+
+</mule>

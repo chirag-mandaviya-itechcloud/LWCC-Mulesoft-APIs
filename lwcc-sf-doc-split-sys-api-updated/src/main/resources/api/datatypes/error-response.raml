@@ -1,0 +1,68 @@
+#%RAML 1.0 DataType
+
+displayName: Error Response
+description: Standard error response schema for all API errors
+
+type: object
+properties:
+  timestamp:
+    type: datetime
+    description: Timestamp when the error occurred (ISO 8601 format with timezone)
+    example: 2026-01-20T14:35:22+05:30
+  correlationId:
+    type: string
+    description: Unique correlation ID for request tracing
+    example: 550e8400-e29b-41d4-a716-446655440000
+  errorCode:
+    type: string
+    description: |
+      Machine-readable error code. Possible values:
+      - VALIDATION_ERROR: Invalid input parameters
+      - UNAUTHORIZED: Missing or invalid authentication
+      - FORBIDDEN: Insufficient permissions
+      - CLAIM_NOT_FOUND: Claim record does not exist
+      - DOCUMENT_NOT_FOUND: ContentDocument does not exist
+      - JOB_NOT_FOUND: Job record does not exist
+      - DOCUMENT_NOT_LINKED_TO_CLAIM: Document is not linked to the specified claim
+      - NOT_A_PDF: File is not a PDF document
+      - INVALID_PDF: PDF is corrupted or cannot be processed
+      - PDF_TOO_LARGE_FOR_POLICY: PDF requires more than 5 parts
+      - SINGLE_PAGE_EXCEEDS_LIMIT: A single page exceeds 15MB
+      - SALESFORCE_AUTH_FAILURE: Failed to authenticate with Salesforce
+      - SALESFORCE_RATE_LIMIT: Salesforce API rate limit exceeded
+      - SALESFORCE_UPSTREAM_ERROR: Salesforce returned an error
+      - PROCESSING_TIMEOUT: Processing exceeded maximum allowed time
+      - INTERNAL_ERROR: Unexpected internal error
+    enum:
+      - VALIDATION_ERROR
+      - UNAUTHORIZED
+      - FORBIDDEN
+      - CLAIM_NOT_FOUND
+      - DOCUMENT_NOT_FOUND
+      - JOB_NOT_FOUND
+      - DOCUMENT_NOT_LINKED_TO_CLAIM
+      - NOT_A_PDF
+      - INVALID_PDF
+      - PDF_TOO_LARGE_FOR_POLICY
+      - SINGLE_PAGE_EXCEEDS_LIMIT
+      - SALESFORCE_AUTH_FAILURE
+      - SALESFORCE_RATE_LIMIT
+      - SALESFORCE_UPSTREAM_ERROR
+      - PROCESSING_TIMEOUT
+      - INTERNAL_ERROR
+    example: DOCUMENT_NOT_LINKED_TO_CLAIM
+  message:
+    type: string
+    description: Human-readable error message (safe for display, no sensitive data)
+    example: The specified document is not linked to this claim
+  details:
+    type: object
+    description: Additional error details (optional, non-sensitive)
+    required: false
+    example:
+      claimId: a0B5g00000AbCdEfGh
+      contentDocumentId: 069Hp00000BcDeFgHi
+  retryable:
+    type: boolean
+    description: Whether the request can be retried
+    example: false

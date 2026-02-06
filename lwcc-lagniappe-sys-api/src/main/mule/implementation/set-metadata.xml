@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<sub-flow name="set-metadata-subflow" doc:id="6fc469f3-e086-4405-bf4d-ff44aa816ef9" >
+		<set-variable value="#[attributes.headers.'x-correlation-id']" doc:name="Set correlationId" doc:id="cb5e5668-25f5-44c0-96a0-020ec4dc9287" variableName="correlationId"/>
+	</sub-flow>
+</mule>

@@ -1,0 +1,230 @@
+#%RAML 1.0
+title: Salesforce PDF Split System API
+baseUri: api.lwcc.com/sf-doc-split-sys-api
+description: System API for splitting large PDF documents stored in Salesforce into sequential parts and re-uploading them linked to the original claim.
+version: v1
+protocols: [HTTPS]
+mediaType: application/json
+
+securitySchemes:
+  client-enforcement:
+    type: x-client-enforcement
+    describedBy:
+      headers:
+        client_id:
+          type: string
+          required: true
+        client_secret:
+          type: string
+          required: true
+      responses:
+        401:
+          body:
+            application/json:
+              example: |
+                {"error": "Client Credentials Invalid"}
+
+traits:
+  error-responses:
+    responses:
+      400:
+        description: Bad Request
+        body:
+          application/json:
+            type: ErrorResponse
+      401:
+        description: Unauthorized
+        body:
+          application/json:
+            type: ErrorResponse
+      404:
+        description: Not Found
+        body:
+          application/json:
+            type: ErrorResponse
+      500:
+        description: Internal Server Error
+        body:
+          application/json:
+            type: ErrorResponse
+  correlation-id:
+    headers:
+      X-Correlation-Id:
+        type: string
+        required: false
+        description: Correlation ID for request tracing
+
+types:
+  SplitResponse: !include datatypes/split-response.raml
+  PartDetail: !include datatypes/part-detail.raml
+  JobAcceptedResponse: !include datatypes/job-accepted-response.raml
+  JobStatusResponse: !include datatypes/job-status-response.raml
+  JobProgress: !include datatypes/job-progress.raml
+  ErrorResponse: !include datatypes/error-response.raml
+  HealthResponse: !include datatypes/health-response.raml
+
+/healthcheck:
+  get:
+    description: Health check endpoint
+    responses:
+      200:
+        description: Service is healthy
+        body:
+          application/json:
+            type: HealthResponse
+
+/claims/{claimId}/documents/{contentDocumentId}/split:
+  securedBy: [client-enforcement]
+  uriParameters:
+    claimId:
+      type: string
+      description: Salesforce Claim ID
+      example: a0B5g00000AbCdEfGh
+    contentDocumentId:
+      type: string
+      description: Salesforce ContentDocument ID
+      example: 069Hp00000BcDeFgHi
+  post:
+    is: [error-responses, correlation-id]
+    description: Validates and splits a PDF document synchronously
+    queryParameters:
+      maxPartSizeMb:
+        description: Maximum size per part in megabytes. Value controlled by server config (split.maxPartSizeMb in common-config.yaml). Query param ignored.
+        type: integer
+        minimum: 1
+        maximum: 10
+        default: 10
+        required: false
+      maxParts:
+        description: Maximum number of parts allowed. Value controlled by server config (split.maxParts in common-config.yaml). Query param ignored.
+        type: integer
+        minimum: 1
+        maximum: 5
+        default: 5
+        required: false
+      dryRun:
+        description: If true, validates and plans the split without uploading
+        type: boolean
+        default: false
+        required: false
+    responses:
+      200:
+        description: Split completed successfully
+        body:
+          application/json:
+            type: SplitResponse
+            example: !include examples/split-success.json
+
+/claims/{claimId}/documents/{contentDocumentId}/split-jobs:
+  securedBy: [client-enforcement]
+  uriParameters:
+    claimId:
+      type: string
+      description: Salesforce Claim ID
+      example: a0B5g00000AbCdEfGh
+    contentDocumentId:
+      type: string
+      description: Salesforce ContentDocument ID
+      example: 069Hp00000BcDeFgHi
+  post:
+    is: [error-responses, correlation-id]
+    description: Initiates an asynchronous PDF split job
+    queryParameters:
+      maxPartSizeMb:
+        description: Maximum size per part in megabytes. Value controlled by server config (split.maxPartSizeMb in common-config.yaml). Query param ignored.
+        type: integer
+        minimum: 1
+        maximum: 10
+        default: 10
+        required: false
+      maxParts:
+        description: Maximum number of parts allowed. Value controlled by server config (split.maxParts in common-config.yaml). Query param ignored.
+        type: integer
+        minimum: 1
+        maximum: 5
+        default: 5
+        required: false
+      callbackUrl:
+        description: URL to receive webhook notification when job completes (must be HTTPS)
+        type: string
+        required: false
+    responses:
+      202:
+        description: Job accepted and queued for processing
+        body:
+          application/json:
+            type: JobAcceptedResponse
+            example: !include examples/job-accepted.json
+
+/split-jobs:
+  securedBy: [client-enforcement]
+  get:
+    is: [error-responses, correlation-id]
+    description: List split jobs with optional filtering
+    queryParameters:
+      status:
+        description: Filter jobs by status
+        type: string
+        enum: [ACCEPTED, VALIDATING, DOWNLOADING, SPLITTING, UPLOADING, COMPLETED, FAILED]
+        required: false
+      claimId:
+        description: Filter jobs by claim ID
+        type: string
+        required: false
+      limit:
+        description: Maximum number of jobs to return (1-100, default 20)
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+        required: false
+    responses:
+      200:
+        description: List of jobs matching the filter criteria
+        body:
+          application/json:
+            example:
+              jobs:
+                - jobId: "job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d"
+                  status: "COMPLETED"
+                  claimId: "a0B5g00000AbCdEfGh"
+                  createdAt: "2026-01-20T14:30:00+05:30"
+              pagination:
+                total: 1
+                limit: 20
+                offset: 0
+
+/split-jobs/{jobId}:
+  securedBy: [client-enforcement]
+  uriParameters:
+    jobId:
+      type: string
+      description: Job ID
+      example: job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d
+  get:
+    is: [error-responses, correlation-id]
+    description: Returns the current status and results of an async split job
+    responses:
+      200:
+        description: Job status retrieved successfully
+        body:
+          application/json:
+            type: JobStatusResponse
+            example: !include examples/job-completed.json
+      404:
+        description: Job not found
+        body:
+          application/json:
+            type: ErrorResponse
+            example: !include examples/error-job-not-found.json
+  delete:
+    is: [error-responses, correlation-id]
+    description: Cancels a pending or in-progress split job
+    responses:
+      204:
+        description: Job cancelled successfully
+      400:
+        description: Job cannot be cancelled (already completed or failed)
+        body:
+          application/json:
+            type: ErrorResponse

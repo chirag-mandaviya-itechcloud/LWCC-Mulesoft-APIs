@@ -1,0 +1,598 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="lagniappe-sys-api-suite.xml" />
+	<munit:test name="put:\covNonCovBodyParts:application\json:lagniappe-sys-api-config-test" doc:id="b353ac76-201a-4b51-97c4-2eabf26b5b84">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call covnoncov-bodyparts-flow" doc:id="74e59000-8dff-4e45-8fc6-ea28d3760067" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="ba041f67-e6b4-4d0f-89e4-fa07f35229ba" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://putcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="in_cncbodypart_rec" value="#[output application/java --- readUrl('classpath://putcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_variable_.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://putcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_variable_1.dwl')]" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="91edac55-f8ed-4c63-95bf-8dd8abe912dd" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://putcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://putcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://putcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to put:\covNonCovBodyParts:application\json:lagniappe-sys-api-config" doc:id="156c4199-a23d-4461-84f4-b1cef2bdaf24" name="put:\covNonCovBodyParts:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="160e4c1e-3613-45c8-8116-fee2bee7d537" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import putcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END CovNonCov BodyParts PUT Operation" doc:id="6a4c6e85-34d3-4c68-be7c-d953cfa6df96" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="b9fb08eb-a385-4697-86f4-c133a91b205c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="delete:\covNonCovBodyParts:application\json:lagniappe-sys-api-config-test" doc:id="afbe16e9-d7e5-45d5-ba4a-315fe4a40908">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call covnoncov-bodyparts-flow" doc:id="5b9d316d-1cfa-471a-bcc0-eb17956dbdb9" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="27453a58-9f3e-4d39-be4f-46dee20db22e" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://deletecovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="in_cncbodypart_rec" value="#[output application/java --- readUrl('classpath://deletecovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_variable_.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://deletecovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_variable_1.dwl')]" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="fd1ad372-e234-4785-a8de-ac4d079a90b1" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://deletecovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://deletecovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://deletecovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to delete:\covNonCovBodyParts:application\json:lagniappe-sys-api-config" doc:id="9f87a549-db6d-4636-8f10-c9cb977069f1" name="delete:\covNonCovBodyParts:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="3c00648f-e92b-429f-bed1-ded5706afc81" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import deletecovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END CovNonCov BodyParts DELETE Operation" doc:id="9bd74bac-20a4-4a53-b295-5f2b1cac53ab" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="5d9593aa-b801-423e-9829-2136c3b1d3dc" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="get:\healthcheck:lagniappe-sys-api-config-test" doc:id="c9ddb947-4763-4a8c-b1c9-fbf7b40f8542">
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="f9332cc2-49d4-467a-8da5-5dc875dd60a6" >
+				<munit:payload value="#[readUrl('classpath://gethealthchecklagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://gethealthchecklagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://gethealthchecklagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to get:\healthcheck:lagniappe-sys-api-config" doc:id="fc1e0a1c-a5cf-4d10-bba9-44de70ea04ad" name="get:\healthcheck:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="4636c010-f9b7-4eea-a38c-78efc6abf6fe" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import gethealthchecklagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Set Lagniappe System API Healtcheck Response" doc:id="ed46d4f9-8cb3-4c99-ab1d-e2da7b1e296a" processor="ee:transform" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="c2ed5e51-740f-40de-b62c-c7b5a1a72a8b" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="post:\covNonCovBodyParts:application\json:lagniappe-sys-api-config-test" doc:id="5294d626-16ba-4189-9aaa-e3984522bc29">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call covnoncov-bodyparts-flow" doc:id="a0c4355c-1e0b-4d5c-984b-b6b4b2d93592" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="a995ee43-5fb8-4ccc-94f9-de015dc8fda6" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://postcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="in_cncbodypart_rec" value="#[output application/java --- readUrl('classpath://postcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_variable_.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://postcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\mock_variable_1.dwl')]" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="14f43d10-46b2-4093-b761-8f7fe5324054" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://postcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://postcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://postcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to post:\covNonCovBodyParts:application\json:lagniappe-sys-api-config" doc:id="df9ea759-9151-4690-9299-7e8e04499838" name="post:\covNonCovBodyParts:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="8c00973c-c6b8-40ca-95d2-7d73a7b8878d" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import postcovNonCovBodyPartsapplicationjsonlagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END CovNonCov BodyParts POST Operation" doc:id="8fc0fa79-b76e-4b41-a3e8-3e776989ec36" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="ebfc8c81-b314-4694-b070-2ede1fd71046" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="lagniappe-sys-api-bad-request" doc:id="70d4498d-171e-4af5-9689-b3a855bb4924" description="Test" expectedErrorType="APIKIT:BAD_REQUEST">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="74a61311-e15a-40e1-ac56-40ab025b5d17" processor="apikit:router" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="lagniappe-sys-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="APIKIT:BAD_REQUEST" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to lagniappe-sys-api-main" doc:id="01ccf0b8-c1ce-4e04-a7e8-c63d0f268f3b" name="lagniappe-sys-api-main" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Assert that" doc:id="3f7a802b-7b9f-41f4-9d09-68f9bd380947" message='#[{message: "Bad request"}]' expression="#[payload]" is='#[{message: "Bad request"}]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="lagniappe-sys-api-not-found" doc:id="760a71c1-6c1c-4e7c-a260-7de50c5d7cd4" description="Test" expectedErrorType="APIKIT:NOT_FOUND">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="308520ea-e68a-42ab-8b4b-3b46521eaf02" processor="apikit:router" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="lagniappe-sys-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="APIKIT:NOT_FOUND" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to lagniappe-sys-api-main" doc:id="64f5d339-e28d-4882-b2c3-7e22b4fe6117" name="lagniappe-sys-api-main" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="3044c913-9be5-4368-b938-86749f92a4f3" message='#[{message: "Resource not found"}]' expression="#[payload]" is='#[{message: "Resource not found"}]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="lagniappe-sys-api-method-not-allowed" doc:id="ac06b6a0-357b-4d18-9f44-be9e4ee1b5ad" description="Test" expectedErrorType="APIKIT:METHOD_NOT_ALLOWED">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="72f8e44c-88f5-4aa0-b82c-c01b1a46e762" processor="apikit:router" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="lagniappe-sys-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="APIKIT:METHOD_NOT_ALLOWED" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to lagniappe-sys-api-main" doc:id="03e395e5-784e-41e5-9c9a-127594354997" name="lagniappe-sys-api-main" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="c08167bf-0cbc-4ed2-9387-e7fab9977700" message='#[{message: "Method not allowed"}]' expression="#[payload]" is='#[{message: "Method not allowed"}]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="lagniappe-sys-api-not-acceptable" doc:id="1a68a45a-8d55-49bf-bbd4-e9244db45e3c" description="Test" expectedErrorType="APIKIT:NOT_ACCEPTABLE">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="7b915b94-0776-4052-b9fe-323018fa3fd4" processor="apikit:router" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="lagniappe-sys-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="APIKIT:NOT_ACCEPTABLE" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to lagniappe-sys-api-main" doc:id="6539c64e-8099-4421-9e01-3e90ca6d2e26" name="lagniappe-sys-api-main" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="07ade520-7be7-49a6-a81a-46a9dffb1ffa" message='#[{message: "Not acceptable"}]' expression="#[payload]" is='#[{message: "Not acceptable"}]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="lagniappe-sys-api-unsupported-media-type" doc:id="ea58ce68-ea07-442f-87dc-ab1140e347e7" description="Test" expectedErrorType="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="cfaf4549-5bc9-4bd1-9e5e-5be82fe3deac" processor="apikit:router" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="lagniappe-sys-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="APIKIT:UNSUPPORTED_MEDIA_TYPE" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to lagniappe-sys-api-main" doc:id="290e8116-25ff-4ac9-b151-90638d6f6488" name="lagniappe-sys-api-main" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="ee8cc174-3315-485d-ba1b-299c67c8e813" message='#[{message: "Unsupported media type"}]' expression="#[payload]" is='#[{message: "Unsupported media type"}]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="lagniappe-sys-api-not-implemented" doc:id="b6da5f86-7d97-4271-8b3f-62d9eb2d48dc" description="Test" expectedErrorType="APIKIT:NOT_IMPLEMENTED">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="f9afce72-dcef-4b52-9797-300957955619" processor="apikit:router" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="lagniappe-sys-api-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="APIKIT:NOT_IMPLEMENTED" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to lagniappe-sys-api-main" doc:id="44b64edd-fbbf-4b57-9af4-5303dae04c03" name="lagniappe-sys-api-main" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="8842e0e6-7436-4682-8b65-61adc5bc4a27" message='#[{message: "Not Implemented"}]' expression="#[payload]" is='#[{message: "Not Implemented"}]' />
+		</munit:validation>
+	</munit:test>
+	<munit:test name="put:\covNonCovMedProviders:application\json:lagniappe-sys-api-config-test" doc:id="f3ed0853-e23e-432c-a705-9df3924871bb">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call covnoncov-providers-flow" doc:id="eeeff74f-a919-4230-82e9-dfa70264195d" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="13713df0-237d-4c93-b35c-f26b2c243c40" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://putcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://putcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_variable_.dwl')]" />
+						<munit-tools:variable key="in_cncprovider_rec" value="#[output application/java --- readUrl('classpath://putcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="7e04f4bb-f516-4f89-9156-8238c51d6485" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://putcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://putcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://putcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to put:\covNonCovMedProviders:application\json:lagniappe-sys-api-config" doc:id="24b6e2ae-49f4-443c-a1f8-05e43b7dce67" name="put:\covNonCovMedProviders:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="8416a939-e933-480c-836d-846064558534" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import putcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END CovNonCov MedProvider PUT Operation" doc:id="be24826f-daba-4bd4-98a7-9f20bf2c64b3" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="c766b64d-53dc-45cd-820f-85dc872be9f3" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="post:\covNonCovMedProviders:application\json:lagniappe-sys-api-config-test" doc:id="872ff850-f664-4d04-83a7-5a3e76f6d50d">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call covnoncov-providers-flow" doc:id="b1a11b2a-0da7-4a86-86d0-99992f1f32ad" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="d69c994d-764d-4a1d-9391-abc12dbd1b8a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://postcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://postcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_variable_.dwl')]" />
+						<munit-tools:variable key="in_cncprovider_rec" value="#[output application/java --- readUrl('classpath://postcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="cc5043de-6cf2-4912-956d-8793038fb2f4" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://postcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://postcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://postcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to post:\covNonCovMedProviders:application\json:lagniappe-sys-api-config" doc:id="364e6191-b49b-4833-ab1a-ac091905f3e4" name="post:\covNonCovMedProviders:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="aa24e201-9bec-4eee-8deb-40dee003ded7" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import postcovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END CovNonCov MedProvider POST Operation" doc:id="c06a5d7c-2c31-43a7-b9f4-b6beb4b12850" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="37a6d266-722c-490c-8070-bb7d8746849e" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="delete:\covNonCovMedProviders:application\json:lagniappe-sys-api-config-test" doc:id="fda9e5f9-3741-4edd-bc12-1c055bc2d32e">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call covnoncov-providers-flow" doc:id="be0c8b28-d9b1-4b62-8b07-bd7a0c1323c6" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="91ee8fba-79ce-427b-8716-681d7dfe9325" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://deletecovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://deletecovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_variable_.dwl')]" />
+						<munit-tools:variable key="in_cncprovider_rec" value="#[output application/java --- readUrl('classpath://deletecovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="37652c2c-b896-4167-9bcc-b34584b2356e" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://deletecovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://deletecovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://deletecovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to delete:\covNonCovMedProviders:application\json:lagniappe-sys-api-config" doc:id="8b90cecb-fee6-4f0a-9a43-4a1637c862d6" name="delete:\covNonCovMedProviders:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="5414beb9-8ee4-44d6-aa1e-b5eac3f70fff" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import deletecovNonCovMedProvidersapplicationjsonlagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END CovNonCov MedProvider DELETE Operation" doc:id="1fcb3b0a-c3f2-4670-ac37-fa44e468cc8a" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="157649d2-f647-425a-8604-da8058d10af3" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="patch:\froi:application\json:lagniappe-sys-api-config-test-success" doc:id="2acd3943-50d3-49e8-bfc0-57505677a6ba">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call froi-generate-request-flow" doc:id="9a82df06-f111-4987-a23c-f9d76a140272" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="1962b488-f9c9-4f0e-9185-f44a13fb42d3" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestsuccess\mock_payload.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestsuccess\mock_variable_.dwl')]" />
+						<munit-tools:variable key="correlationId" value="#[output application/java --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestsuccess\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="7e10dee6-04a2-41fe-bf4c-1f7325d2b618" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestsuccess\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestsuccess\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestsuccess\set-event_variable_.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/java --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestsuccess\set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to patch:\froi:application\json:lagniappe-sys-api-config" doc:id="d27490c2-8893-4405-9f54-7256255dbac0" name="patch:\froi:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="d1e878ec-a3a1-4a75-ad87-cba0e0d00754" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import patchfroiapplicationjsonlagniappesysapiconfigtestsuccess::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END Insert FROI Generation Request" doc:id="dd13a942-50e2-4786-bce5-904940e60132" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="7327ef89-5ff2-406c-ae0d-49310a778431" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="patch:\froi:application\json:lagniappe-sys-api-config-test-failed" doc:id="7853b198-cf55-406c-816e-e31a87a45f97">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call froi-generate-request-flow" doc:id="54477b41-ed71-47c3-a584-71f632466baf" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="1962b488-f9c9-4f0e-9185-f44a13fb42d3" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\mock_payload.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:attributes value="#[output application/json --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\mock_attributes.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\mock_variable_.dwl')]" />
+						<munit-tools:variable key="httpStatus" value="#[output application/java --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/java --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\mock_variable_2.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="eeacaf3b-7bb5-49b3-93d1-7d62074129fc" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\set-event_variable_.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/java --- readUrl('classpath://patchfroiapplicationjsonlagniappesysapiconfigtestfailed\set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to patch:\froi:application\json:lagniappe-sys-api-config" doc:id="9eb99896-dfae-436a-af6d-dacf292fc823" name="patch:\froi:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="739ffce8-a487-4cda-930f-b06aeb2f2e01" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import patchfroiapplicationjsonlagniappesysapiconfigtestfailed::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END Insert FROI Generation Request" doc:id="b31e98c0-86af-46a3-8b27-56ac31ac0160" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="7327ef89-5ff2-406c-ae0d-49310a778431" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="get:\imageRightFroiDocumentInfo:lagniappe-sys-api-config-test-success" doc:id="11b00b94-2a7e-4812-ad06-b55f78ad5379">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call froi-imageright-doc-info-flow" doc:id="83f063c4-998d-4266-90eb-2f7d6ab90644" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="2f384a9a-7571-470b-9556-bb2edf2d983b" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess\mock_payload.dwl')]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess\mock_variable_.dwl')]" />
+						<munit-tools:variable key="correlationId" value="#[output application/java --- readUrl('classpath://getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="claimNum" value="#[output application/java --- readUrl('classpath://getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess\mock_variable_2.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="c969e8f1-cd6f-4c98-91c6-dae647eb5553" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess\set-event_variable_.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/java --- readUrl('classpath://getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess\set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to get:\imageRightFroiDocumentInfo:lagniappe-sys-api-config" doc:id="1cb4dbe7-0484-47f0-b3bd-45fc1795056b" name="get:\imageRightFroiDocumentInfo:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="e29c8797-0d98-4013-b662-48600cdbc3d8" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import getimageRightFroiDocumentInfolagniappesysapiconfigtestsuccess::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END FROI Image Right Document Info GET Operation" doc:id="8511a5b9-1774-46de-845d-ade54a8bb4a7" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="c469da04-e690-4d95-b978-c3c81a5c116b" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="put:\claimRecord:application\json:lagniappe-sys-api-config-test" doc:id="5a4ba716-1b6c-4ee7-9ce6-658078c2f50b" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call injured-worker-claim-flow" doc:id="59d323ec-b5a0-4b4e-8efa-5ad0ebc25397" processor="flow-ref" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Call injured-worker-claim-flow" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="758686c3-34a0-4ecb-bcfe-41e6bfa9a700" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://putclaimrecordssapplicationjsonlagniappesysapiconfigtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="in_claim_rec" value="#[output application/java --- readUrl('classpath://putclaimrecordssapplicationjsonlagniappesysapiconfigtest\mock_variable_.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://putclaimrecordssapplicationjsonlagniappesysapiconfigtest\mock_variable_2.dwl')]" />
+						<munit-tools:variable key="in_clmnt_init_contact_rec" value="#[output application/java --- readUrl('classpath://putclaimrecordssapplicationjsonlagniappesysapiconfigtest\mock_variable_1.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="663c253b-71e4-4fde-962c-4544865d76e4" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://putclaimrecordssapplicationjsonlagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://putclaimrecordssapplicationjsonlagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://putclaimrecordssapplicationjsonlagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to put:\claimRecord:application\json:lagniappe-sys-api-config" doc:id="ecfd7cda-ed5f-4107-90f7-0fa4a5fc7272" name="put:\claimRecord:application\json:lagniappe-sys-api-config" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="d7ecc5b9-aa22-491e-a784-3db450f662f1" message="The payload does not match" >
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import putclaimrecordssapplicationjsonlagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END Injured Worker PUT Operation" doc:id="cd349f87-d4d0-4ed4-a32a-46d576f1a2c7" processor="json-logger:logger" times="1" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Log END Injured Worker PUT Operation" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="a9e468b1-3690-4305-85a0-6b908ef88862" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="patch:\claimInvestigation:application\json:lagniappe-sys-api-config-test" doc:id="4c12f9f3-0571-446c-afa7-a61c28098713" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock Call claim-ivestigation-flow" doc:id="779653fe-3b5e-484d-80ca-9714e82cb2e1" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="8c693883-a786-4c09-8f9f-3a674b676c5d" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json  --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_payload.dwl')]" mediaType="application/json " encoding="UTF-8" />
+					<munit-tools:variables >
+						<munit-tools:variable key="in_invst_typ" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="outboundHeaders" value="#[readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_1.dwl')]" />
+						<munit-tools:variable key="in_clm_inv_plcy_hldr_folup_rec" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_2.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="initialPayload" value="#[output application/json --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_3.dwl')]" mediaType="application/json" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_iw_rspn_tbl" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_4.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_init_cntc_comnt_tbl" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_5.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_iw_fol_up_rec" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_6.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_cntc_comnt_tbl" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_7.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_plcy_hldr_rec" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_8.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="httpStatus" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_9.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_iw_rec" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_10.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="in_clm_inv_phy_rec" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_11.dwl')]" mediaType="application/java" encoding="UTF-8" />
+						<munit-tools:variable key="correlationId" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\mock_variable_12.dwl')]" mediaType="application/java" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="6536e296-dab3-4a17-b3c8-af15ded24c3b" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\set-event_variable_.dwl')]" />
+					<munit:variable key="correlationId" value="#[output application/java --- readUrl('classpath://patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest\set-event_variable_1.dwl')]" encoding="UTF-8" mediaType="application/java" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to patch:\claimInvestigation:application\json:lagniappe-sys-api-config" doc:id="069e5be6-b330-4540-b983-9e38549e8716" name="patch:\claimInvestigation:application\json:lagniappe-sys-api-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="11490ab7-262a-4d5b-bae9-c2e52b6f65d2" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import patchclaimInvestigationapplicationjsonlagniappesysapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call doc:name="Verify Log END Claim Investigation PATCH Operation" doc:id="db6a02ac-d927-41ee-a540-aca06638703a" processor="json-logger:logger" times="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="30c73596-a0f5-487f-8e1c-5721bfccf01f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

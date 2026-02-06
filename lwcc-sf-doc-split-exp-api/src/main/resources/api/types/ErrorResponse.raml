@@ -1,0 +1,30 @@
+#%RAML 1.0 DataType
+
+description: Standard error response following organization format
+type: object
+properties:
+  errorCode:
+    description: Machine-readable error code
+    type: string
+    required: true
+    example: "BAD_REQUEST"
+  errorMessage:
+    description: Error status (typically FAILURE)
+    type: string
+    required: true
+    example: "FAILURE"
+  errorDescription:
+    description: Human-readable error description
+    type: string
+    required: false
+    example: "claimId is required and cannot be blank"
+  transactionId:
+    description: Correlation/Transaction ID for tracing
+    type: string
+    required: true
+    example: "exp-12345-abcde"
+  timeStamp:
+    description: Error timestamp (ISO 8601)
+    type: datetime
+    required: true
+    example: "2026-01-22T10:30:00.000Z"

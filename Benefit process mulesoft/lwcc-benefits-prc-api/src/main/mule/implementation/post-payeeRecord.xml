@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	
+	<sub-flow name="post-payees-record-sub-flow" doc:id="ec8592f4-066c-4db2-b6fc-3b51fe57f66a" >
+		<ee:transform doc:name="Set Benefit , Payee and Claim ID" doc:id="71b499c9-55fc-405b-aa07-90d479207a4c">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="claimRecordId"><![CDATA[%dw 2.0
+output application/json
+---
+payload.dtClaim]]></ee:set-variable>
+				<ee:set-variable variableName="payeeRecordId"><![CDATA[%dw 2.0
+output application/json
+---
+payload.id]]></ee:set-variable>
+				<ee:set-variable variableName="benefitRecordId" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.dtBenefits]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="get-claim-payee-id-sub-flow" doc:id="0a8651ba-865d-4dd4-af0c-ca9624e78012" name="get-claim-payee-id-sub-flow"/>
+		<flow-ref doc:name="get-payees-sub-flow" doc:id="607b9494-5f5e-41f4-82e4-cbc1446be3ab" name="get-payees-sub-flow"/>
+		<flow-ref doc:name="get-benefits-sub-flow" doc:id="bf552bd5-83a6-4f51-b5d5-dc6dcdfbc8ed" name="get-benefits-sub-flow" />
+		<flow-ref doc:name="get-claims-sub-flow" doc:id="5eada999-a21a-4a76-98e4-89cda51df8cd" name="get-claims-sub-flow" />
+		<ee:transform doc:name="Prepare payload for lagniappe" doc:id="26057aa3-288e-4588-8957-5687d3ae8310" >
+			<ee:message >
+				<ee:set-payload resource="transforms/dwl/p-createPayeeRequest.dwl" />
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="patch-benefits-sub-flow" doc:id="0c7a5661-90f4-4a9b-8cfe-e8d51b15e152" name="patch-benefits-sub-flow" />
+	</sub-flow>
+</mule>

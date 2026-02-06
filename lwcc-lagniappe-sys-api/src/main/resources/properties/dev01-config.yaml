@@ -1,0 +1,36 @@
+api:  
+    id: "20414067"                 # replace with real id once added to api manager                
+    clientId: ""
+    clientSecret: ""
+                  # API Configurations                
+    name: "${project.name}"
+    version: "${api.version}"
+  
+http:  
+    port: "8081"
+  
+httpsRequest:  
+    host: "replace with actual values"
+    port: "443"
+    path: ""
+    reconnection:  
+        frequency: "2000"
+        attempts: "2" 
+    clientId: "replace with actual values"
+    clientSecret: "replace with actual values"
+    
+db: 
+    sid: "DEV01"
+    port: "1521"
+    
+      
+httpReq:
+  integ:
+      host: "lwcc-int-log-sfdc-sys-api-dev01-2kyssg.internal-vhj0p8.usa-e1.cloudhub.io"
+      port: "443"
+      path: "/integrationLogs"
+      basepath: "/api"
+      method: "POST"
+      reconnection:
+          frequency: "2000"
+          attempts: "2"

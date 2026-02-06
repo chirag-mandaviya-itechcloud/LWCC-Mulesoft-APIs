@@ -1,0 +1,21 @@
+#%RAML 1.0 DataType
+
+description: Health check response
+type: object
+properties:
+  status:
+    description: Health status indicator
+    type: string
+    enum: [UP, DOWN]
+    required: true
+    example: "UP"
+  timestamp:
+    description: Health check timestamp
+    type: string
+    required: true
+    example: "2026-01-22T10:30:00.000+05:30"
+  version:
+    description: API version
+    type: string
+    required: true
+    example: "1.0.0"

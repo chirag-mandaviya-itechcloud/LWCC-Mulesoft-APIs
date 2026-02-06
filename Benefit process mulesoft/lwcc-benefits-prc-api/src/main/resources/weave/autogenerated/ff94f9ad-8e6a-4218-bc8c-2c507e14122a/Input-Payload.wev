@@ -1,0 +1,7 @@
+%dw 2.0
+
+type auto_ff94f9ad_8e6a_4218_bc8c_2c507e14122a_Input_Payload = {
+  benefitRecordId: String, 
+  _?: Any
+}
+

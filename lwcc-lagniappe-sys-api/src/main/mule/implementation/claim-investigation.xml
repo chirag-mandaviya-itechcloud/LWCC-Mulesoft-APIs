@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="claim-ivestigation-flow"
+		doc:id="5bb7147e-12f2-44ed-adc0-7c3b0fc98095">
+		<ee:transform doc:name="Prepare Claim Investigation SP Parameters" doc:id="b9acb53a-1024-4db0-99b9-86ad38ec597f">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="in_invst_typ" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.claimInvType]]></ee:set-variable>
+				<ee:set-variable resource="transforms/dwl/prepare_claim_inv_iw_rec.dwl" variableName="in_clm_inv_iw_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claim_inv_iw_fol_up_rec.dwl" variableName="in_clm_inv_iw_fol_up_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claim_inv_phy_rec.dwl" variableName="in_clm_inv_phy_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claim_inv_plcy_hldr_rec.dwl" variableName="in_clm_inv_plcy_hldr_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claim_inv_plcy_hldr_folup_rec.dwl" variableName="in_clm_inv_plcy_hldr_folup_rec" />
+				<ee:set-variable resource="transforms/dwl/prepare_claim_inv_iw_rspn_tbl.dwl" variableName="in_clm_inv_iw_rspn_tbl" />
+				<ee:set-variable resource="transforms/dwl/prepare_claim_inv_cntc_comnt_tbl.dwl" variableName="in_clm_cntc_comnt_tbl" />
+				<ee:set-variable resource="transforms/dwl/prepare_claim_inv_init_cntc_comnt_tbl.dwl" variableName="in_clm_init_cntc_comnt_tbl" />
+			</ee:variables>
+		</ee:transform>
+		<json-logger:logger doc:name="Log BEFORE Call Claim Investigation SP" doc:id="c4f146b8-0e95-4f1b-9e6e-224282ad146f" config-ref="JSON_Logger_Config" message="BEFORE Call Claim Investigation SP" tracePoint="BEFORE_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+ payload: {'invst_typ': payload.claimInvType, 
+ 'clm_inv_iw_rec': JSONLoggerModule::stringifyNonJSON(vars.in_clm_inv_iw_rec), 
+ 'clm_inv_iw_fol_up_rec': JSONLoggerModule::stringifyNonJSON(vars.in_clm_inv_iw_fol_up_rec), 
+ 'clm_inv_phy_rec': JSONLoggerModule::stringifyNonJSON(vars.in_clm_inv_phy_rec), 
+ 'clm_inv_plcy_hldr_rec': JSONLoggerModule::stringifyNonJSON(vars.in_clm_inv_plcy_hldr_rec), 
+ 'clm_inv_plcy_hldr_folup_rec': JSONLoggerModule::stringifyNonJSON(vars.in_clm_inv_plcy_hldr_folup_rec), 
+ 'clm_inv_iw_rspn_tbl': JSONLoggerModule::stringifyNonJSON(vars.in_clm_inv_iw_rspn_tbl),
+ 'clm_cntc_comnt_tbl': JSONLoggerModule::stringifyNonJSON(vars.in_clm_cntc_comnt_tbl),
+ 'clm_init_cntc_comnt_tbl': JSONLoggerModule::stringifyNonJSON(vars.in_clm_init_cntc_comnt_tbl)
+}
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<until-successful maxRetries="${httpsRequest.reconnection.attempts}" doc:name="Until Successful" doc:id="4eb4316b-ffd1-4464-a016-d7fc87901a70" millisBetweenRetries="${httpsRequest.reconnection.frequency}">
+			<db:stored-procedure doc:name="Call Claim Investigation SP" doc:id="f186e731-fadf-45c9-8737-2123a9e4762a" config-ref="Database_Config" queryTimeout="30000" queryTimeoutUnit="MILLISECONDS">
+			<db:sql><![CDATA[{ call pkg_dgtl_clm_invstg_intfc.prc_claimsinvestigation(:invst_typ, :clm_inv_iw_rec, :clm_inv_iw_fol_up_rec, :clm_inv_phy_rec, :clm_inv_plcy_hldr_rec, :clm_inv_plcy_hldr_folup_rec, :clm_inv_iw_rspn_tbl, :clm_cntc_comnt_tbl, :clm_init_cntc_comnt_tbl, :response) }]]></db:sql>
+			<db:input-parameters><![CDATA[#[{ invst_typ: vars.in_invst_typ, clm_inv_iw_rec: vars.in_clm_inv_iw_rec, clm_inv_iw_fol_up_rec: vars.in_clm_inv_iw_fol_up_rec, clm_inv_phy_rec: vars.in_clm_inv_phy_rec, clm_inv_plcy_hldr_rec: vars.in_clm_inv_plcy_hldr_rec, clm_inv_plcy_hldr_folup_rec: vars.in_clm_inv_plcy_hldr_folup_rec, clm_inv_iw_rspn_tbl: vars.in_clm_inv_iw_rspn_tbl, clm_cntc_comnt_tbl: vars.in_clm_cntc_comnt_tbl, clm_init_cntc_comnt_tbl: vars.in_clm_init_cntc_comnt_tbl }]]]></db:input-parameters>
+			<db:output-parameters>
+				<db:output-parameter key="response" customType="PKG_DGTL_CLM_INVSTG_INTFC.INTF_ERR_REC" />
+			</db:output-parameters>
+		</db:stored-procedure>
+		</until-successful>
+		<ee:transform doc:name="Claim Investigation  SP Response to JSON" doc:id="d6de7486-9a49-4a44-8783-5e5c399e870a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<json-logger:logger doc:name="Log AFTER Call Claim Investigation SP" doc:id="0f5f4ec6-86eb-4b00-a7fe-9aa6117201bf" config-ref="JSON_Logger_Config" message="AFTER Call Claim Investigation SP" tracePoint="AFTER_REQUEST" >
+			<json-logger:content ><![CDATA[#[import modules::JSONLoggerModule output application/json ---
+{
+    payload: JSONLoggerModule::stringifyNonJSON(payload) 
+}]]]></json-logger:content>
+		</json-logger:logger>
+		<choice doc:name="Choice" doc:id="726049c3-7557-48e3-b71b-d20d41cfdb6c" >
+			<when expression="#[payload.response[0] == 0]" >
+				<ee:transform doc:name="Set Success 201 Response" doc:id="931afd01-3e62-4368-87aa-47cf12f8cf6e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "claim-number": vars.initialPayload.claimNumber,
+  "claim-inv-type": vars.initialPayload.claimInvType,
+  "response": payload.response[1]
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="httpStatus" ><![CDATA[200]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Set Error Response" doc:id="3e7fb828-4160-424e-a3b8-ee0e29fd1296" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "errorCode": "INTERNAL_SERVER_ERROR",
+  "errorMessage": payload.response[1],
+  "transactionId": vars.correlationId,
+  "timeStamp": now()
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables />
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

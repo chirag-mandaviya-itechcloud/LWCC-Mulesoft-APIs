@@ -1,0 +1,9 @@
+#%RAML 1.0 Trait
+
+usage: Apply this trait to enable correlation ID tracking
+headers:
+  X-Correlation-ID:
+    description: Caller-provided correlation ID for request tracing
+    type: string
+    required: false
+    example: "exp-12345-abcde"
