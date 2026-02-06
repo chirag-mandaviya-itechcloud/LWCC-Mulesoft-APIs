@@ -1,0 +1,27 @@
+#%RAML 1.0 DataType
+
+displayName: Job Progress
+description: Progress information for an async split job
+
+type: object
+properties:
+  currentStep:
+    type: string
+    description: Human-readable description of the current processing step
+    example: Splitting PDF into parts
+  completedSteps:
+    type: integer
+    minimum: 0
+    description: Number of steps completed
+    example: 2
+  totalSteps:
+    type: integer
+    minimum: 1
+    description: Total number of steps in the process
+    example: 5
+  percentComplete:
+    type: integer
+    minimum: 0
+    maximum: 100
+    description: Overall percentage of completion
+    example: 40

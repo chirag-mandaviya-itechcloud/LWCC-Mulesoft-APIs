@@ -1,0 +1,30 @@
+#%RAML 1.0 DataType
+
+displayName: Job Accepted Response
+description: Response returned when an async split job is accepted
+
+type: object
+properties:
+  jobId:
+    type: string
+    description: Unique identifier for the split job
+    pattern: ^job_[a-f0-9-]{36}$
+    example: job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d
+  status:
+    type: string
+    enum: [ACCEPTED]
+    description: Initial job status
+    example: ACCEPTED
+  statusUrl:
+    type: string
+    description: Relative URL to poll for job status
+    example: /split-jobs/job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d
+  createdAt:
+    type: datetime
+    description: Timestamp when the job was created (ISO 8601 format)
+    example: 2026-01-20T14:30:00+05:30
+  message:
+    type: string
+    description: Human-readable status message
+    required: false
+    example: Split job accepted and queued for processing

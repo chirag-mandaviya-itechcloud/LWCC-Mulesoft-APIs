@@ -1,0 +1,1347 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+		http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<!-- ============================================== -->
+	<!-- VALIDATE CLAIM EXISTS SUBFLOW                  -->
+	<!-- ============================================== -->
+	<sub-flow name="validate-claim-subflow"
+		doc:id="validate-claim-subflow"
+		doc:name="validate-claim-subflow">
+
+		<logger doc:name="Log Validate Claim"
+			doc:id="log-validate-claim"
+			level="DEBUG"
+			message="#['Validating claim exists: ' ++ vars.claimId]" />
+
+		<!-- Query Salesforce for claim -->
+		<salesforce:query doc:name="Query Claim"
+			doc:id="query-claim"
+			config-ref="Salesforce_Config"
+			target="claimResult">
+			<salesforce:salesforce-query><![CDATA[SELECT Id, Name FROM Claim WHERE Id = ':claimId' LIMIT 1]]></salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[{
+	claimId: vars.claimId
+}]]]></salesforce:parameters>
+		</salesforce:query>
+
+		<!-- Check if claim found -->
+		<choice doc:name="Check Claim Exists"
+			doc:id="check-claim-exists">
+			<when expression="#[sizeOf(vars.claimResult) == 0]">
+				<raise-error doc:name="Raise CLAIM_NOT_FOUND"
+					doc:id="raise-claim-not-found"
+					type="APP:CLAIM_NOT_FOUND"
+					description="#['Claim not found: ' ++ vars.claimId]" />
+			</when>
+		</choice>
+
+		<logger doc:name="Log Claim Found"
+			doc:id="log-claim-found"
+			level="DEBUG"
+			message="#['Claim validated: ' ++ vars.claimId]" />
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- VALIDATE DOCUMENT LINK SUBFLOW                 -->
+	<!-- ============================================== -->
+	<sub-flow name="validate-document-link-subflow"
+		doc:id="validate-doc-link-subflow"
+		doc:name="validate-document-link-subflow">
+
+		<logger doc:name="Log Validate Document Link"
+			doc:id="log-validate-doc-link"
+			level="DEBUG"
+			message="#['Validating document link: claimId=' ++ vars.claimId ++ ', docId=' ++ vars.contentDocumentId]" />
+
+		<!-- Query Salesforce for ContentDocumentLink -->
+		<salesforce:query doc:name="Query ContentDocumentLink"
+			doc:id="query-doc-link"
+			config-ref="Salesforce_Config"
+			target="docLinkResult">
+			<salesforce:salesforce-query><![CDATA[SELECT Id, ContentDocumentId, LinkedEntityId
+FROM ContentDocumentLink
+WHERE LinkedEntityId = ':claimId' AND ContentDocumentId = ':contentDocumentId'
+LIMIT 1]]></salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[{
+	claimId: vars.claimId,
+	contentDocumentId: vars.contentDocumentId
+}]]]></salesforce:parameters>
+		</salesforce:query>
+
+		<!-- Check if link found -->
+		<choice doc:name="Check Link Exists"
+			doc:id="check-link-exists">
+			<when expression="#[sizeOf(vars.docLinkResult) == 0]">
+				<raise-error doc:name="Raise DOCUMENT_NOT_LINKED"
+					doc:id="raise-doc-not-linked"
+					type="APP:DOCUMENT_NOT_LINKED_TO_CLAIM"
+					description="#['Document ' ++ vars.contentDocumentId ++ ' is not linked to claim ' ++ vars.claimId]" />
+			</when>
+		</choice>
+
+		<logger doc:name="Log Document Link Found"
+			doc:id="log-doc-link-found"
+			level="DEBUG"
+			message="#['Document link validated']" />
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- FETCH CONTENT VERSION SUBFLOW                  -->
+	<!-- ============================================== -->
+	<sub-flow name="fetch-content-version-subflow"
+		doc:id="fetch-content-version-subflow"
+		doc:name="fetch-content-version-subflow">
+
+		<logger doc:name="Log Fetch ContentVersion"
+			doc:id="log-fetch-cv"
+			level="DEBUG"
+			message="#['Fetching ContentVersion for: ' ++ vars.contentDocumentId]" />
+
+		<!-- Query Salesforce for latest ContentVersion -->
+		<salesforce:query doc:name="Query ContentVersion"
+			doc:id="query-content-version"
+			config-ref="Salesforce_Config"
+			target="contentVersionResult">
+			<salesforce:salesforce-query><![CDATA[SELECT Id, Title, FileExtension, ContentSize, PathOnClient, VersionNumber, ContentDocumentId
+FROM ContentVersion
+WHERE ContentDocumentId = ':contentDocumentId' AND IsLatest = true
+LIMIT 1]]></salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[{
+	contentDocumentId: vars.contentDocumentId
+}]]]></salesforce:parameters>
+		</salesforce:query>
+
+		<!-- Check if ContentVersion found -->
+		<choice doc:name="Check ContentVersion Exists"
+			doc:id="check-cv-exists">
+			<when expression="#[sizeOf(vars.contentVersionResult) == 0]">
+				<raise-error doc:name="Raise DOCUMENT_NOT_FOUND"
+					doc:id="raise-doc-not-found"
+					type="APP:DOCUMENT_NOT_FOUND"
+					description="#['ContentDocument not found: ' ++ vars.contentDocumentId]" />
+			</when>
+		</choice>
+
+		<!-- Store ContentVersion in variable -->
+		<set-variable doc:name="Set contentVersion"
+			doc:id="set-content-version"
+			variableName="contentVersion"
+			value="#[vars.contentVersionResult[0]]" />
+
+		<logger doc:name="Log ContentVersion Found"
+			doc:id="log-cv-found"
+			level="DEBUG"
+			message="#['ContentVersion found: ' ++ vars.contentVersion.Id ++ ', size=' ++ (vars.contentVersion.ContentSize as String)]" />
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- CHECK IDEMPOTENCY SUBFLOW                      -->
+	<!-- ============================================== -->
+	<sub-flow name="check-idempotency-subflow"
+		doc:id="check-idempotency-subflow"
+		doc:name="check-idempotency-subflow">
+
+		<!-- Generate idempotency key -->
+		<set-variable doc:name="Set idempotency key"
+			doc:id="set-idempotency-key"
+			variableName="idempotencyKey"
+			value="#[vars.claimId ++ '|' ++ vars.contentDocumentId ++ '|' ++ vars.contentVersion.Id]" />
+
+		<logger doc:name="Log Idempotency Check"
+			doc:id="log-idempotency-check"
+			level="DEBUG"
+			message="#['Checking idempotency for key: ' ++ vars.idempotencyKey]" />
+
+		<!-- Try to retrieve existing result -->
+		<try doc:name="Try retrieve idempotency"
+			doc:id="try-idempotency">
+			<os:retrieve doc:name="Retrieve Idempotency"
+				doc:id="retrieve-idempotency"
+				key="#[vars.idempotencyKey]"
+				objectStore="Idempotency_Object_Store"
+				target="idempotencyResult" />
+
+			<logger doc:name="Log Idempotency Found"
+				doc:id="log-idempotency-found"
+				level="INFO"
+				message="#['Idempotency record found: status=' ++ (vars.idempotencyResult.status default 'unknown')]" />
+
+			<error-handler>
+				<on-error-continue doc:name="On Key Not Found"
+					doc:id="on-idempotency-not-found"
+					type="OS:KEY_NOT_FOUND">
+					<set-variable doc:name="Set idempotencyResult null"
+						doc:id="set-idempotency-null"
+						variableName="idempotencyResult"
+						value="#[null]" />
+					<logger doc:name="Log No Idempotency"
+						doc:id="log-no-idempotency"
+						level="DEBUG"
+						message="No idempotency record found - will process" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- STORE IDEMPOTENCY RESULT SUBFLOW               -->
+	<!-- ============================================== -->
+	<sub-flow name="store-idempotency-result-subflow"
+		doc:id="store-idempotency-result-subflow"
+		doc:name="store-idempotency-result-subflow">
+
+		<os:store doc:name="Store Idempotency Result"
+			doc:id="store-idempotency"
+			key="#[vars.idempotencyKey]"
+			objectStore="Idempotency_Object_Store">
+			<os:value><![CDATA[#[vars.idempotencyData]]]></os:value>
+		</os:store>
+
+		<logger doc:name="Log Idempotency Stored"
+			doc:id="log-idempotency-stored"
+			level="DEBUG"
+			message="#['Idempotency result stored: status=' ++ vars.idempotencyData.status]" />
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- PROCESS SPLIT SUBFLOW                          -->
+	<!-- Main split processing logic                    -->
+	<!-- ============================================== -->
+	<sub-flow name="process-split-subflow"
+		doc:id="process-split-subflow"
+		doc:name="process-split-subflow">
+
+		<json-logger:logger
+			doc:name="Log Process Split Start"
+			doc:id="log-process-split"
+			config-ref="JSON_Logger_Config"
+			message="PDF split processing started"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: flow.name,
+	subFlowName: "process-split-subflow",
+	step: "PROCESS_SPLIT_START",
+	claimId: vars.claimId,
+	contentDocumentId: vars.contentDocumentId,
+	contentVersionId: vars.contentVersion.Id default null,
+	dryRun: vars.dryRun default false,
+	fileSizeBytes: vars.contentVersion.ContentSize default null
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Store IN_PROGRESS status in idempotency store (if enabled) -->
+		<choice doc:name="Check Store Idempotency Progress"
+			doc:id="check-store-idempotency-progress">
+			<when expression="#[p('idempotency.enabled') == 'true' and vars.idempotencyKey != null]">
+				<set-variable doc:name="Set idempotency IN_PROGRESS"
+					doc:id="set-idempotency-progress"
+					variableName="idempotencyData"
+					value="#[output application/java --- {
+	status: 'IN_PROGRESS',
+	correlationId: vars.correlationId,
+	startedAt: now() as String {format: 'yyyy-MM-dd\'T\'HH:mm:ssXXX'}
+}]" />
+
+				<flow-ref doc:name="Store Idempotency"
+					doc:id="ref-store-idempotency-progress"
+					name="store-idempotency-result-subflow" />
+			</when>
+		</choice>
+
+		<!-- Download PDF binary from Salesforce -->
+		<flow-ref doc:name="Download PDF"
+			doc:id="ref-download-pdf"
+			name="download-pdf-subflow" />
+
+		<!-- Compress PDF before splitting (if enabled) -->
+		<flow-ref doc:name="Compress PDF"
+			doc:id="ref-compress-pdf"
+			name="compress-pdf-subflow" />
+
+		<!-- Analyze and split PDF using Java -->
+		<flow-ref doc:name="Split PDF"
+			doc:id="ref-split-pdf"
+			name="split-pdf-subflow" />
+
+		<choice doc:name="Check dryRun"
+			doc:id="check-dry-run">
+			<when expression="#[vars.dryRun == true or vars.dryRun == 'true']">
+				<!-- Dry run - return analysis without uploading -->
+				<logger doc:name="Log DryRun Mode"
+					doc:id="log-dryrun-mode"
+					level="INFO"
+					message="#['DRYRUN_MODE | Skipping Salesforce upload, returning analysis only']" />
+				<ee:transform doc:name="Build Dry Run Response"
+					doc:id="build-dryrun-response">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	claimId: vars.claimId as String,
+	sourceContentDocumentId: vars.contentDocumentId as String,
+	sourceContentVersionId: vars.contentVersion.Id as String,
+	originalFileName: (vars.contentVersion.Title as String) ++ "." ++ (vars.contentVersion.FileExtension as String),
+	originalSizeBytes: vars.contentVersion.ContentSize as Number,
+	originalPageCount: vars.pdfPageCount as Number,
+	partCount: sizeOf(vars.splitParts),
+	status: "DRY_RUN",
+	dryRun: true,
+	parts: vars.splitParts map ((part, index) -> {
+		partNumber: part.partNumber as Number,
+		pageStart: part.pageStart as Number,
+		pageEnd: part.pageEnd as Number,
+		pageCount: part.pageCount as Number,
+		sizeBytes: part.sizeBytes as Number,
+		sizeMb: ((part.sizeBytes as Number) / 1048576) as Number {format: "0.00"},
+		contentVersionId: "",
+		contentDocumentId: "",
+		contentDocumentLinkId: "",
+		fileName: part.fileName as String
+	}),
+	correlationId: vars.correlationId as String,
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<!-- Actual processing - upload each part to Salesforce -->
+				<logger doc:name="Log Upload Mode"
+					doc:id="log-upload-mode"
+					level="INFO"
+					message="#['UPLOAD_MODE | Starting upload of ' ++ (sizeOf(vars.splitParts) as String) ++ ' parts to Salesforce']" />
+
+			<logger doc:name="Log Parallel Upload Start"
+				doc:id="log-parallel-upload-start"
+				level="INFO"
+				message="#['PARALLEL_UPLOAD | Starting parallel upload of ' ++ (sizeOf(vars.splitParts) as String) ++ ' parts']" />
+
+			<!-- Upload all parts in parallel using scatter-gather -->
+			<!-- Each route processes one part if it exists (max 5 parts per config) -->
+			<scatter-gather doc:name="Upload All Parts in Parallel"
+				doc:id="scatter-gather-upload">
+
+				<!-- Route 1: Process Part 1 (if exists) -->
+				<route>
+					<choice doc:name="Check Part 1 Exists">
+						<when expression="#[sizeOf(vars.splitParts) >= 1]">
+							<set-variable doc:name="Set current part"
+								variableName="currentPart"
+								value="#[vars.splitParts[0]]" />
+							<set-variable doc:name="Set part number"
+								variableName="partNumber"
+								value="#[vars.currentPart.partNumber]" />
+							<set-variable doc:name="Set part filename"
+								variableName="partFileName"
+								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+							<set-variable doc:name="Set part content"
+								variableName="partContent"
+								value="#[vars.currentPart.pdfBytes]" />
+							<logger level="INFO"
+								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+							<flow-ref doc:name="Upload Part 1"
+								name="upload-part-to-salesforce-subflow" />
+							<ee:transform doc:name="Build Part 1 Result">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.currentPart.partNumber as Number,
+	pageStart: vars.currentPart.pageStart as Number,
+	pageEnd: vars.currentPart.pageEnd as Number,
+	pageCount: vars.currentPart.pageCount as Number,
+	sizeBytes: vars.currentPart.sizeBytes as Number,
+	sizeMb: ((vars.currentPart.sizeBytes as Number) / 1048576) as Number {format: "0.00"},
+	contentVersionId: vars.newContentVersionId as String,
+	contentDocumentId: vars.newContentDocumentId as String,
+	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
+	fileName: vars.currentPart.fileName as String
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</when>
+						<otherwise>
+							<set-payload value="#[null]" />
+						</otherwise>
+					</choice>
+				</route>
+
+				<!-- Route 2: Process Part 2 (if exists) -->
+				<route>
+					<choice doc:name="Check Part 2 Exists">
+						<when expression="#[sizeOf(vars.splitParts) >= 2]">
+							<set-variable doc:name="Set current part"
+								variableName="currentPart"
+								value="#[vars.splitParts[1]]" />
+							<set-variable doc:name="Set part number"
+								variableName="partNumber"
+								value="#[vars.currentPart.partNumber]" />
+							<set-variable doc:name="Set part filename"
+								variableName="partFileName"
+								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+							<set-variable doc:name="Set part content"
+								variableName="partContent"
+								value="#[vars.currentPart.pdfBytes]" />
+							<logger level="INFO"
+								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+							<flow-ref doc:name="Upload Part 2"
+								name="upload-part-to-salesforce-subflow" />
+							<ee:transform doc:name="Build Part 2 Result">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.currentPart.partNumber as Number,
+	pageStart: vars.currentPart.pageStart as Number,
+	pageEnd: vars.currentPart.pageEnd as Number,
+	pageCount: vars.currentPart.pageCount as Number,
+	sizeBytes: vars.currentPart.sizeBytes as Number,
+	sizeMb: ((vars.currentPart.sizeBytes as Number) / 1048576) as Number {format: "0.00"},
+	contentVersionId: vars.newContentVersionId as String,
+	contentDocumentId: vars.newContentDocumentId as String,
+	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
+	fileName: vars.currentPart.fileName as String
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</when>
+						<otherwise>
+							<set-payload value="#[null]" />
+						</otherwise>
+					</choice>
+				</route>
+
+				<!-- Route 3: Process Part 3 (if exists) -->
+				<route>
+					<choice doc:name="Check Part 3 Exists">
+						<when expression="#[sizeOf(vars.splitParts) >= 3]">
+							<set-variable doc:name="Set current part"
+								variableName="currentPart"
+								value="#[vars.splitParts[2]]" />
+							<set-variable doc:name="Set part number"
+								variableName="partNumber"
+								value="#[vars.currentPart.partNumber]" />
+							<set-variable doc:name="Set part filename"
+								variableName="partFileName"
+								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+							<set-variable doc:name="Set part content"
+								variableName="partContent"
+								value="#[vars.currentPart.pdfBytes]" />
+							<logger level="INFO"
+								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+							<flow-ref doc:name="Upload Part 3"
+								name="upload-part-to-salesforce-subflow" />
+							<ee:transform doc:name="Build Part 3 Result">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.currentPart.partNumber as Number,
+	pageStart: vars.currentPart.pageStart as Number,
+	pageEnd: vars.currentPart.pageEnd as Number,
+	pageCount: vars.currentPart.pageCount as Number,
+	sizeBytes: vars.currentPart.sizeBytes as Number,
+	sizeMb: ((vars.currentPart.sizeBytes as Number) / 1048576) as Number {format: "0.00"},
+	contentVersionId: vars.newContentVersionId as String,
+	contentDocumentId: vars.newContentDocumentId as String,
+	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
+	fileName: vars.currentPart.fileName as String
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</when>
+						<otherwise>
+							<set-payload value="#[null]" />
+						</otherwise>
+					</choice>
+				</route>
+
+				<!-- Route 4: Process Part 4 (if exists) -->
+				<route>
+					<choice doc:name="Check Part 4 Exists">
+						<when expression="#[sizeOf(vars.splitParts) >= 4]">
+							<set-variable doc:name="Set current part"
+								variableName="currentPart"
+								value="#[vars.splitParts[3]]" />
+							<set-variable doc:name="Set part number"
+								variableName="partNumber"
+								value="#[vars.currentPart.partNumber]" />
+							<set-variable doc:name="Set part filename"
+								variableName="partFileName"
+								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+							<set-variable doc:name="Set part content"
+								variableName="partContent"
+								value="#[vars.currentPart.pdfBytes]" />
+							<logger level="INFO"
+								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+							<flow-ref doc:name="Upload Part 4"
+								name="upload-part-to-salesforce-subflow" />
+							<ee:transform doc:name="Build Part 4 Result">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.currentPart.partNumber as Number,
+	pageStart: vars.currentPart.pageStart as Number,
+	pageEnd: vars.currentPart.pageEnd as Number,
+	pageCount: vars.currentPart.pageCount as Number,
+	sizeBytes: vars.currentPart.sizeBytes as Number,
+	sizeMb: ((vars.currentPart.sizeBytes as Number) / 1048576) as Number {format: "0.00"},
+	contentVersionId: vars.newContentVersionId as String,
+	contentDocumentId: vars.newContentDocumentId as String,
+	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
+	fileName: vars.currentPart.fileName as String
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</when>
+						<otherwise>
+							<set-payload value="#[null]" />
+						</otherwise>
+					</choice>
+				</route>
+
+				<!-- Route 5: Process Part 5 (if exists) -->
+				<route>
+					<choice doc:name="Check Part 5 Exists">
+						<when expression="#[sizeOf(vars.splitParts) >= 5]">
+							<set-variable doc:name="Set current part"
+								variableName="currentPart"
+								value="#[vars.splitParts[4]]" />
+							<set-variable doc:name="Set part number"
+								variableName="partNumber"
+								value="#[vars.currentPart.partNumber]" />
+							<set-variable doc:name="Set part filename"
+								variableName="partFileName"
+								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+							<set-variable doc:name="Set part content"
+								variableName="partContent"
+								value="#[vars.currentPart.pdfBytes]" />
+							<logger level="INFO"
+								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+							<flow-ref doc:name="Upload Part 5"
+								name="upload-part-to-salesforce-subflow" />
+							<ee:transform doc:name="Build Part 5 Result">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.currentPart.partNumber as Number,
+	pageStart: vars.currentPart.pageStart as Number,
+	pageEnd: vars.currentPart.pageEnd as Number,
+	pageCount: vars.currentPart.pageCount as Number,
+	sizeBytes: vars.currentPart.sizeBytes as Number,
+	sizeMb: ((vars.currentPart.sizeBytes as Number) / 1048576) as Number {format: "0.00"},
+	contentVersionId: vars.newContentVersionId as String,
+	contentDocumentId: vars.newContentDocumentId as String,
+	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
+	fileName: vars.currentPart.fileName as String
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</when>
+						<otherwise>
+							<set-payload value="#[null]" />
+						</otherwise>
+					</choice>
+				</route>
+
+			</scatter-gather>
+
+			<!-- Aggregate results from parallel uploads -->
+			<ee:transform doc:name="Aggregate Upload Results"
+				doc:id="aggregate-upload-results">
+				<ee:variables>
+					<ee:set-variable variableName="uploadedParts"><![CDATA[%dw 2.0
+output application/java
+---
+// Extract payloads from scatter-gather Object structure
+valuesOf(payload) map $.payload filter ($ != null) orderBy $.partNumber]]></ee:set-variable>
+					<ee:set-variable variableName="totalParts"><![CDATA[%dw 2.0
+output application/java
+---
+sizeOf(vars.splitParts)]]></ee:set-variable>
+					<ee:set-variable variableName="successfulParts"><![CDATA[%dw 2.0
+output application/java
+---
+sizeOf(valuesOf(payload) map $.payload filter ($ != null))]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+
+			<!-- Check for partial or total failures -->
+			<!-- [STUDIO:"Check Upload Results"]<choice doc:name="Check Upload Results">
+				<when expression="#[vars.successfulParts == 0&#93;">
+					<logger level="ERROR"
+						message="#['PARALLEL_UPLOAD_FAILED | All ' ++ (vars.totalParts as String) ++ ' parts failed to upload'&#93;" />
+					<raise-error type="APP:UPLOAD_FAILED"
+						description="All parts failed to upload to Salesforce" />
+				</when>
+				<when expression="#[vars.successfulParts &lt; vars.totalParts&#93;">
+					<logger level="WARN"
+						message="#['PARALLEL_UPLOAD_PARTIAL | Uploaded ' ++ (vars.successfulParts as String) ++ ' of ' ++ (vars.totalParts as String) ++ ' parts successfully. Some uploads failed.'&#93;" />
+					<!&#45;&#45; Continue with partial success - API will return successful parts &#45;&#45;>
+				</when>
+				<otherwise>
+					<logger level="INFO"
+						message="#['PARALLEL_UPLOAD_COMPLETE | Successfully uploaded all ' ++ (vars.successfulParts as String) ++ ' parts in parallel'&#93;" />
+				</otherwise>
+			</choice> [STUDIO] -->
+
+				<!-- Build final response -->
+				<ee:transform doc:name="Build Split Response"
+					doc:id="build-split-response">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	claimId: vars.claimId as String,
+	sourceContentDocumentId: vars.contentDocumentId as String,
+	sourceContentVersionId: vars.contentVersion.Id as String,
+	originalFileName: (vars.contentVersion.Title as String) ++ "." ++ (vars.contentVersion.FileExtension as String),
+	originalSizeBytes: vars.contentVersion.ContentSize as Number,
+	originalPageCount: vars.pdfPageCount as Number,
+	partCount: sizeOf(vars.uploadedParts),
+	status: "COMPLETED",
+	dryRun: false,
+	parts: vars.uploadedParts map ((part, index) -> {
+		partNumber: part.partNumber as Number,
+		pageStart: part.pageStart as Number,
+		pageEnd: part.pageEnd as Number,
+		pageCount: part.pageCount as Number,
+		sizeBytes: part.sizeBytes as Number,
+		sizeMb: part.sizeMb as Number,
+		contentVersionId: part.contentVersionId as String,
+		contentDocumentId: part.contentDocumentId as String,
+		contentDocumentLinkId: part.contentDocumentLinkId as String,
+		fileName: part.fileName as String
+	}),
+	correlationId: vars.correlationId as String,
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+
+				<logger doc:name="Log Upload Complete"
+					doc:id="log-upload-all-complete"
+					level="INFO"
+					message="#[output text/plain --- 'UPLOAD_ALL_COMPLETE | uploadedParts=' ++ (sizeOf(vars.uploadedParts) as String) ++ ' | status=COMPLETED']" />
+
+				<!-- Store COMPLETED status in idempotency store (if enabled) -->
+				<!-- [STUDIO:"Check Store Idempotency Complete"]<choice doc:name="Check Store Idempotency Complete"
+					doc:id="check-store-idempotency-complete">
+					<when expression="#[p('idempotency.enabled') == 'true' and vars.idempotencyKey != null&#93;">
+						<set-variable doc:name="Set idempotency COMPLETED"
+							doc:id="set-idempotency-complete"
+							variableName="idempotencyData"
+							value="#[output application/java &#45;&#45;- {
+	status: 'COMPLETED',
+	correlationId: vars.correlationId,
+	completedAt: now() as String {format: 'yyyy-MM-dd\'T\'HH:mm:ssXXX'},
+	result: payload
+}&#93;" />
+
+						<flow-ref doc:name="Store Idempotency Complete"
+							doc:id="ref-store-idempotency-complete"
+							name="store-idempotency-result-subflow" />
+					</when>
+				</choice> [STUDIO] -->
+
+			</otherwise>
+		</choice>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- DOWNLOAD PDF FROM SALESFORCE SUBFLOW           -->
+	<!-- Downloads binary content via Salesforce REST   -->
+	<!-- SOQL returns URL, need HTTP request for bytes  -->
+	<!-- ============================================== -->
+	<sub-flow name="download-pdf-subflow"
+		doc:id="download-pdf-subflow"
+		doc:name="download-pdf-subflow">
+
+		<json-logger:logger
+			doc:name="Log Download Start"
+			doc:id="log-download-start"
+			config-ref="JSON_Logger_Config"
+			message="Starting PDF download from Salesforce"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "download-pdf-subflow",
+	step: "DOWNLOAD_START",
+	contentVersionId: vars.contentVersion.Id,
+	expectedSizeBytes: vars.contentVersion.ContentSize,
+	expectedSizeMb: (vars.contentVersion.ContentSize / 1048576) as Number {format: "0.00"}
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Download PDF to temp file using streaming (optimized for large files) -->
+
+		<ee:transform doc:name="Download PDF to Temp File"
+			doc:id="download-pdf-java">
+			<ee:variables>
+				<ee:set-variable variableName="pdfTempFile"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::SalesforceFileDownloader
+---
+SalesforceFileDownloader::downloadFileToTempWithJwtReturnPath(
+	p('sfdc.endpoint'),
+	p('secure::sfdc.consumerkey'),
+	p('sfdc.principal'),
+	(mule.home default '') ++ '/apps/' ++ (app.name default 'lwcc-sf-doc-split-sys-api') ++ '/' ++ p('mule.env') ++ '-jks.jks',
+	p('secure::sfdc.password'),
+	p('sfdc.alias'),
+	vars.contentVersion.Id
+)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- Debug: Check what type pdfTempFile is after download -->
+		<logger doc:name="Log After Download"
+			doc:id="log-after-download"
+			level="INFO"
+			message="#['DEBUG_DOWNLOAD | Download complete. pdfTempFile type=' ++ (typeOf(vars.pdfTempFile) as String) ++ ' | pdfTempFile value=' ++ (vars.pdfTempFile as String default 'NULL') ++ ' | pdfTempFile length=' ++ (sizeOf(vars.pdfTempFile) as String default 'N/A')]" />
+
+		<!-- Load file into bytes for processing -->
+		<logger doc:name="Log Before Load Bytes"
+			doc:id="log-before-load-bytes"
+			level="INFO"
+			message="#['DEBUG_LOAD | About to load bytes from path: ' ++ (vars.pdfTempFile as String default 'NULL')]" />
+
+		<ee:transform doc:name="Load File to Bytes"
+			doc:id="load-file-bytes">
+			<ee:variables>
+				<ee:set-variable variableName="pdfBytes"><![CDATA[%dw 2.0
+output application/octet-stream
+import java!com::lwcc::pdf::SalesforceFileDownloader
+---
+SalesforceFileDownloader::readFileBytes(vars.pdfTempFile)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- Debug: Log successful load -->
+		<logger doc:name="Log After Load Bytes"
+			doc:id="log-after-load-bytes"
+			level="INFO"
+			message="#[output text/plain --- 'DEBUG_LOAD | Bytes loaded successfully. pdfBytes type=' ++ (typeOf(vars.pdfBytes) as String) ++ ' | Size=' ++ (sizeOf(vars.pdfBytes) as String)]" />
+
+		<!-- Debug: Get hex dump for logging (avoids binary-to-string corruption) -->
+		<ee:transform doc:name="Get Hex Dump for Logging"
+			doc:id="get-hex-dump">
+			<ee:variables>
+				<ee:set-variable variableName="hexDump"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::SalesforceFileDownloader
+---
+SalesforceFileDownloader::getFileHexDump(vars.pdfTempFile, 32)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger doc:name="Log PDF Debug with Hex Dump"
+			doc:id="log-pdf-debug"
+			level="INFO"
+			message="#[output text/plain --- 'DOWNLOAD_DEBUG | Type: ' ++ (typeOf(vars.pdfBytes) as String) ++ ' | Size: ' ++ (sizeOf(vars.pdfBytes) as String) ++ ' bytes | First bytes (hex): ' ++ vars.hexDump]" />
+
+		<!-- Check if data was retrieved -->
+		<choice doc:name="Check Download Result"
+			doc:id="check-download-result">
+			<when expression="#[vars.pdfBytes == null]">
+				<logger doc:name="Log No Data"
+					doc:id="log-no-data"
+					level="ERROR"
+					message="#['DOWNLOAD_ERROR | No content returned for cvId=' ++ vars.contentVersion.Id]" />
+				<raise-error doc:name="Raise Download Error"
+					doc:id="raise-download-error"
+					type="APP:DOWNLOAD_FAILED"
+					description="Failed to download PDF content from Salesforce" />
+			</when>
+		</choice>
+
+		<!-- VALIDATION: Check if downloaded file is actually a PDF (before compression/splitting) -->
+		<ee:transform doc:name="Validate Downloaded PDF"
+			doc:id="validate-downloaded-pdf">
+			<ee:variables>
+				<ee:set-variable variableName="isValidPdf"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::PdfSplitter
+---
+PdfSplitter::isValidPdf(vars.pdfBytes)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger doc:name="Log PDF Validation Result"
+			doc:id="log-pdf-validation"
+			level="INFO"
+			message="#[output text/plain --- 'DOWNLOAD_VALIDATION | isValidPdf=' ++ (vars.isValidPdf as String) ++ ' | size=' ++ (sizeOf(vars.pdfBytes) as String) ++ ' bytes']" />
+
+		<choice doc:name="Check Valid PDF After Download"
+			doc:id="check-valid-pdf-download">
+			<when expression="#[vars.isValidPdf == false]">
+				<!-- Get detailed hex dump for error diagnostics -->
+				<ee:transform doc:name="Get Hex Dump for Error"
+					doc:id="get-hex-dump-error">
+					<ee:variables>
+						<ee:set-variable variableName="errorHexDump"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::SalesforceFileDownloader
+---
+SalesforceFileDownloader::getFileHexDump(vars.pdfTempFile, 64)]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+
+				<json-logger:logger
+					doc:name="Log Invalid PDF Downloaded"
+					doc:id="log-invalid-pdf-downloaded"
+					config-ref="JSON_Logger_Config"
+					message="Downloaded file is not a valid PDF"
+					tracePoint="EXCEPTION"
+					priority="ERROR">
+					<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "download-pdf-subflow",
+	step: "DOWNLOAD_ERROR",
+	contentVersionId: vars.contentVersion.Id,
+	fileSizeBytes: sizeOf(vars.pdfBytes),
+	firstBytesHex: vars.errorHexDump,
+	possibleCauses: ["Salesforce returned HTML error page", "File is not actually a PDF", "File is corrupted or encrypted", "Authentication failed"]
+}]]]></json-logger:content>
+				</json-logger:logger>
+				<raise-error doc:name="Raise Invalid PDF Error"
+					doc:id="raise-invalid-pdf-download"
+					type="APP:NOT_A_PDF"
+					description="#[output text/plain --- 'Downloaded file is not a valid PDF. ContentVersionId: ' ++ vars.contentVersion.Id ++ '. File size: ' ++ (sizeOf(vars.pdfBytes) as String) ++ ' bytes. Expected PDF magic bytes (25 50 44 46 2D = %PDF-) but got: ' ++ vars.errorHexDump ++ '. Common causes: Salesforce authentication expired, file is not a PDF in Salesforce, or Salesforce returned HTML error page.']" />
+			</when>
+		</choice>
+
+		<json-logger:logger
+			doc:name="Log Download Complete"
+			doc:id="log-download-success"
+			config-ref="JSON_Logger_Config"
+			message="PDF downloaded successfully"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "download-pdf-subflow",
+	step: "DOWNLOAD_SUCCESS",
+	contentVersionId: vars.contentVersion.Id,
+	fileSizeBytes: sizeOf(vars.pdfBytes)
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Set payload to pdfBytes for downstream processing -->
+		<set-payload doc:name="Set PDF Bytes as Payload"
+			doc:id="set-pdf-bytes-payload"
+			value="#[vars.pdfBytes]" />
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- COMPRESS PDF SUBFLOW                           -->
+	<!-- Uses Java PDFBox to compress PDF               -->
+	<!-- ============================================== -->
+	<sub-flow name="compress-pdf-subflow"
+		doc:id="compress-pdf-subflow"
+		doc:name="compress-pdf-subflow">
+
+		<!-- Check if compression is enabled -->
+		<choice doc:name="Check Compression Enabled"
+			doc:id="check-compression-enabled">
+			<when expression="#[p('compression.enabled') == 'true' or p('compression.enabled') == true]">
+
+				<json-logger:logger
+					doc:name="Log Compression Start"
+					doc:id="log-compress-start"
+					config-ref="JSON_Logger_Config"
+					message="Starting PDF compression"
+					tracePoint="FLOW"
+					priority="INFO">
+					<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "compress-pdf-subflow",
+	step: "COMPRESS_START",
+	originalSizeBytes: sizeOf(vars.pdfBytes),
+	compressionLevel: p('compression.level') default 'medium'
+}]]]></json-logger:content>
+				</json-logger:logger>
+
+				<!-- Store original size for metrics -->
+				<set-variable doc:name="Set original size"
+					doc:id="set-original-size"
+					variableName="originalPdfSizeBytes"
+					value="#[sizeOf(vars.pdfBytes)]" />
+
+				<!-- Compress PDF using Java class -->
+				<try doc:name="Try Compress PDF"
+					doc:id="try-compress-pdf">
+
+					<ee:transform doc:name="Compress PDF"
+						doc:id="do-compress-pdf">
+						<ee:variables>
+							<ee:set-variable variableName="compressionResult"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::PdfCompressor
+---
+PdfCompressor::compressPdf(vars.pdfBytes, p('compression.level') default 'maximum')]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+
+					<!-- Extract compressed bytes -->
+					<set-variable doc:name="Set compressed PDF bytes"
+						doc:id="set-compressed-bytes"
+						variableName="pdfBytes"
+						value="#[vars.compressionResult.compressedBytes]" />
+
+					<json-logger:logger
+						doc:name="Log Compression Complete"
+						doc:id="log-compress-complete"
+						config-ref="JSON_Logger_Config"
+						message="PDF compression completed"
+						tracePoint="FLOW"
+						priority="INFO">
+						<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "compress-pdf-subflow",
+	step: "COMPRESS_COMPLETE",
+	originalSizeBytes: vars.compressionResult.originalSizeBytes,
+	compressedSizeBytes: vars.compressionResult.compressedSizeBytes,
+	savingsPercent: vars.compressionResult.savingsPercent as Number {format: "0.00"},
+	wasCompressed: vars.compressionResult.wasCompressed
+}]]]></json-logger:content>
+					</json-logger:logger>
+
+					<error-handler>
+						<on-error-continue doc:name="On Compression Error"
+							doc:id="on-compress-error"
+							type="ANY">
+							<logger doc:name="Log Compression Warning"
+								doc:id="log-compress-warning"
+								level="WARN"
+								message="#['COMPRESS_WARNING | Compression failed, using original PDF | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | error=' ++ (error.description default 'unknown') ++ ' | detailedMessage=' ++ (error.detailedDescription default 'N/A') ++ ' | cvId=' ++ vars.contentVersion.Id ++ ' | pdfSize=' ++ (sizeOf(vars.pdfBytes) as String) ++ ' | Suggestion: If this PDF consistently fails compression, it may be password-protected, corrupted, or use unsupported features. The original uncompressed PDF will be used.']" />
+						</on-error-continue>
+					</error-handler>
+				</try>
+
+			</when>
+			<otherwise>
+				<!-- Compression disabled - just log and continue -->
+				<logger doc:name="Log Compression Disabled"
+					doc:id="log-compress-disabled"
+					level="DEBUG"
+					message="#['COMPRESS_SKIP | Compression is disabled']" />
+			</otherwise>
+		</choice>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- SPLIT PDF SUBFLOW                              -->
+	<!-- Uses Java PDFBox to split PDF into parts       -->
+	<!-- ============================================== -->
+	<sub-flow name="split-pdf-subflow"
+		doc:id="split-pdf-subflow"
+		doc:name="split-pdf-subflow">
+
+		<logger doc:name="Log Split Start"
+			doc:id="log-split-start"
+			level="INFO"
+			message="#['SPLIT_START | maxPartSizeMb=' ++ (vars.maxPartSizeMb default p('split.maxPartSizeMb')) as String]" />
+
+		<!-- Validate PDF using Java -->
+		<ee:transform doc:name="Validate PDF"
+			doc:id="validate-pdf">
+			<ee:variables>
+				<ee:set-variable variableName="isValidPdf"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::PdfSplitter
+---
+PdfSplitter::isValidPdf(vars.pdfBytes)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger doc:name="Log Validation Result"
+			doc:id="log-validation"
+			level="INFO"
+			message="#['SPLIT_VALIDATE | isValidPdf=' ++ (vars.isValidPdf as String)]" />
+
+		<choice doc:name="Check Valid PDF"
+			doc:id="check-valid-pdf">
+			<when expression="#[vars.isValidPdf == false]">
+				<logger doc:name="Log Invalid PDF"
+					doc:id="log-invalid-pdf"
+					level="ERROR"
+					message="#['SPLIT_ERROR | File is not a valid PDF']" />
+				<raise-error doc:name="Raise NOT_A_PDF"
+					doc:id="raise-not-pdf"
+					type="APP:NOT_A_PDF"
+					description="File is not a valid PDF document" />
+			</when>
+		</choice>
+
+		<!-- Get page count using Java -->
+		<ee:transform doc:name="Get page count"
+			doc:id="get-page-count">
+			<ee:variables>
+				<ee:set-variable variableName="pdfPageCount"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::PdfSplitter
+---
+PdfSplitter::getPageCount(vars.pdfBytes)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger doc:name="Log Page Count"
+			doc:id="log-page-count"
+			level="INFO"
+			message="#['SPLIT_PAGES | pageCount=' ++ (vars.pdfPageCount as String)]" />
+
+		<!-- Set max part size (convert MB to bytes, default 10MB from config) -->
+		<set-variable doc:name="Set max part size"
+			doc:id="set-max-part-size"
+			variableName="maxPartSizeBytes"
+			value="#[(vars.maxPartSizeMb default p('split.maxPartSizeMb') as Number) * 1024 * 1024]" />
+
+		<logger doc:name="Log Max Part Size"
+			doc:id="log-max-part"
+			level="INFO"
+			message="#['SPLIT_CONFIG | maxPartSizeBytes=' ++ (vars.maxPartSizeBytes as String) ++ ' (' ++ ((vars.maxPartSizeBytes / 1048576) as String) ++ ' MB)']" />
+
+		<!-- Split the PDF using Java class -->
+		<try doc:name="Try Split PDF"
+			doc:id="try-split-pdf">
+
+			<ee:transform doc:name="Split PDF"
+				doc:id="do-split-pdf">
+				<ee:variables>
+					<ee:set-variable variableName="splitParts"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::PdfSplitter
+---
+PdfSplitter::splitPdf(vars.pdfBytes, vars.contentVersion.Title, vars.maxPartSizeBytes)]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+
+			<error-handler>
+				<on-error-propagate doc:name="On Split Error"
+					doc:id="on-split-error"
+					type="ANY">
+					<logger doc:name="Log Split Exception"
+						doc:id="log-split-exception"
+						level="ERROR"
+						message="#['SPLIT_ERROR | PDF splitting failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+
+		<logger doc:name="Log Split Complete"
+			doc:id="log-split-complete"
+			level="INFO"
+			message="#['SPLIT_COMPLETE | partCount=' ++ (sizeOf(vars.splitParts) as String)]" />
+
+		<!-- Log details of each part -->
+		<foreach doc:name="Log Each Part"
+			doc:id="log-each-part"
+			collection="#[vars.splitParts]">
+			<logger doc:name="Log Part Details"
+				doc:id="log-part-details"
+				level="INFO"
+				message="#['SPLIT_PART | part=' ++ (payload.partNumber as String) ++ ' | pages=' ++ (payload.pageStart as String) ++ '-' ++ (payload.pageEnd as String) ++ ' | size=' ++ (payload.sizeBytes as String) ++ ' bytes | fileName=' ++ payload.fileName]" />
+		</foreach>
+
+		<!-- Cleanup: Delete temporary download file -->
+		<try doc:name="Try Delete Temp File"
+			doc:id="try-delete-temp">
+			<ee:transform doc:name="Delete Temp File"
+				doc:id="delete-temp-file">
+				<ee:variables>
+					<ee:set-variable variableName="tempFileDeleted"><![CDATA[%dw 2.0
+output application/java
+import java!com::lwcc::pdf::SalesforceFileDownloader
+---
+SalesforceFileDownloader::deleteFile(vars.pdfTempFile)]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+
+			<logger doc:name="Log Temp File Cleanup"
+				doc:id="log-cleanup"
+				level="DEBUG"
+				message="#['CLEANUP | Temp file deleted: ' ++ (vars.tempFileDeleted as String)]" />
+
+			<error-handler>
+				<on-error-continue doc:name="On Delete Error"
+					doc:id="on-delete-error"
+					type="ANY">
+					<logger doc:name="Log Cleanup Warning"
+						doc:id="log-cleanup-warning"
+						level="WARN"
+						message="#['CLEANUP_WARNING | Failed to delete temp file | error=' ++ (error.description default 'unknown')]" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- UPLOAD PART TO SALESFORCE SUBFLOW              -->
+	<!-- Creates ContentVersion and ContentDocumentLink -->
+	<!-- ============================================== -->
+	<sub-flow name="upload-part-to-salesforce-subflow"
+		doc:id="upload-part-subflow"
+		doc:name="upload-part-to-salesforce-subflow">
+
+		<json-logger:logger
+			doc:name="Log Upload Part Start"
+			doc:id="log-upload-part"
+			config-ref="JSON_Logger_Config"
+			message="Starting part upload to Salesforce"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "upload-part-to-salesforce-subflow",
+	step: "UPLOAD_START",
+	partNumber: vars.partNumber,
+	fileName: vars.partFileName,
+	contentSizeBytes: sizeOf(vars.partContent)
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Convert binary to Base64 for Salesforce VersionData field -->
+		<ee:transform doc:name="Encode Part as Base64"
+			doc:id="encode-part-base64">
+			<ee:variables>
+				<ee:set-variable variableName="partContentBase64"><![CDATA[%dw 2.0
+output text/plain
+import * from dw::core::Binaries
+---
+toBase64(vars.partContent as Binary)]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<logger doc:name="Log Base64 Size"
+			doc:id="log-base64-size"
+			level="DEBUG"
+			message="#['UPLOAD_BASE64 | Part ' ++ (vars.partNumber as String) ++ ' | base64Length=' ++ (sizeOf(vars.partContentBase64) as String)]" />
+
+		<!-- Create ContentVersion with error handling -->
+		<try doc:name="Try Create ContentVersion"
+			doc:id="try-create-cv">
+
+			<salesforce:create doc:name="Create ContentVersion"
+				doc:id="create-content-version"
+				config-ref="Salesforce_Config"
+				type="ContentVersion"
+				target="createResult">
+				<salesforce:records><![CDATA[#[[{
+	Title: vars.partFileName,
+	PathOnClient: vars.partFileName ++ '.pdf',
+	VersionData: vars.partContentBase64
+}]]]]></salesforce:records>
+			</salesforce:create>
+
+			<logger doc:name="Log CV Create Result"
+				doc:id="log-cv-result"
+				level="INFO"
+				message="#['SALESFORCE_CREATE_CV | success=' ++ (vars.createResult.successful as String default 'unknown') ++ ' | id=' ++ (vars.createResult.items[0].id default 'null')]" />
+
+			<!-- Check if creation was successful -->
+			<choice doc:name="Check CV Creation Success"
+				doc:id="check-cv-success">
+				<when expression="#[vars.createResult.successful != true]">
+					<logger doc:name="Log CV Create Failed"
+						doc:id="log-cv-failed"
+						level="ERROR"
+						message="#['SALESFORCE_ERROR | ContentVersion creation failed | errors=' ++ write(vars.createResult, 'application/json')]" />
+					<raise-error doc:name="Raise SF Error"
+						doc:id="raise-sf-cv-error"
+						type="APP:SALESFORCE_ERROR"
+						description="#['Failed to create ContentVersion: ' ++ (vars.createResult.items[0].payload.errors[0].message default 'Unknown error')]" />
+				</when>
+			</choice>
+
+			<error-handler>
+				<on-error-propagate doc:name="On CV Create Error"
+					doc:id="on-cv-error"
+					type="ANY">
+					<logger doc:name="Log CV Exception"
+						doc:id="log-cv-exception"
+						level="ERROR"
+						message="#['SALESFORCE_EXCEPTION | ContentVersion creation failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+
+		<!-- Store created ContentVersionId -->
+		<set-variable doc:name="Set new ContentVersionId"
+			doc:id="set-new-cv-id"
+			variableName="newContentVersionId"
+			value="#[vars.createResult.items[0].id]" />
+
+		<logger doc:name="Log CV Created"
+			doc:id="log-cv-created"
+			level="INFO"
+			message="#['UPLOAD_CV_SUCCESS | newContentVersionId=' ++ vars.newContentVersionId]" />
+
+		<!-- Query for the ContentDocumentId created -->
+		<try doc:name="Try Query ContentDocumentId"
+			doc:id="try-query-doc-id">
+
+			<salesforce:query doc:name="Query new ContentDocumentId"
+				doc:id="query-new-doc-id"
+				config-ref="Salesforce_Config"
+				target="newDocResult">
+				<salesforce:salesforce-query><![CDATA[SELECT ContentDocumentId FROM ContentVersion WHERE Id = ':cvId']]></salesforce:salesforce-query>
+				<salesforce:parameters><![CDATA[#[{
+	cvId: vars.newContentVersionId
+}]]]></salesforce:parameters>
+			</salesforce:query>
+
+			<logger doc:name="Log Query Result"
+				doc:id="log-query-result"
+				level="DEBUG"
+				message="#['SALESFORCE_QUERY | ContentDocumentId query result count=' ++ (sizeOf(vars.newDocResult) as String)]" />
+
+			<error-handler>
+				<on-error-propagate doc:name="On Query Error"
+					doc:id="on-query-error"
+					type="ANY">
+					<logger doc:name="Log Query Exception"
+						doc:id="log-query-exception"
+						level="ERROR"
+						message="#['SALESFORCE_EXCEPTION | Query ContentDocumentId failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+
+		<set-variable doc:name="Set new ContentDocumentId"
+			doc:id="set-new-doc-id"
+			variableName="newContentDocumentId"
+			value="#[vars.newDocResult[0].ContentDocumentId]" />
+
+		<logger doc:name="Log Doc ID Retrieved"
+			doc:id="log-doc-id"
+			level="INFO"
+			message="#['UPLOAD_DOC_ID | newContentDocumentId=' ++ vars.newContentDocumentId]" />
+
+		<!-- Create ContentDocumentLink to claim -->
+		<try doc:name="Try Create ContentDocumentLink"
+			doc:id="try-create-link">
+
+			<salesforce:create doc:name="Create ContentDocumentLink"
+				doc:id="create-doc-link"
+				config-ref="Salesforce_Config"
+				type="ContentDocumentLink"
+				target="linkResult">
+				<salesforce:records><![CDATA[#[[{
+	ContentDocumentId: vars.newContentDocumentId,
+	LinkedEntityId: vars.claimId,
+	ShareType: 'V',
+	Visibility: 'AllUsers'
+}]]]]></salesforce:records>
+			</salesforce:create>
+
+			<logger doc:name="Log Link Create Result"
+				doc:id="log-link-result"
+				level="INFO"
+				message="#['SALESFORCE_CREATE_LINK | success=' ++ (vars.linkResult.successful as String default 'unknown') ++ ' | id=' ++ (vars.linkResult.items[0].id default 'null')]" />
+
+			<!-- Check if link creation was successful -->
+			<choice doc:name="Check Link Creation Success"
+				doc:id="check-link-success">
+				<when expression="#[vars.linkResult.successful != true]">
+					<logger doc:name="Log Link Create Failed"
+						doc:id="log-link-failed"
+						level="ERROR"
+						message="#['SALESFORCE_ERROR | ContentDocumentLink creation failed | errors=' ++ write(vars.linkResult, 'application/json')]" />
+					<raise-error doc:name="Raise SF Link Error"
+						doc:id="raise-sf-link-error"
+						type="APP:SALESFORCE_ERROR"
+						description="#['Failed to create ContentDocumentLink: ' ++ (vars.linkResult.items[0].payload.errors[0].message default 'Unknown error')]" />
+				</when>
+			</choice>
+
+			<error-handler>
+				<on-error-propagate doc:name="On Link Create Error"
+					doc:id="on-link-error"
+					type="ANY">
+					<logger doc:name="Log Link Exception"
+						doc:id="log-link-exception"
+						level="ERROR"
+						message="#['SALESFORCE_EXCEPTION | ContentDocumentLink creation failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+
+		<set-variable doc:name="Set ContentDocumentLinkId"
+			doc:id="set-link-id"
+			variableName="newContentDocumentLinkId"
+			value="#[vars.linkResult.items[0].id]" />
+
+		<json-logger:logger
+			doc:name="Log Part Upload Complete"
+			doc:id="log-part-uploaded"
+			config-ref="JSON_Logger_Config"
+			message="Part upload completed"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "upload-part-to-salesforce-subflow",
+	step: "UPLOAD_COMPLETE",
+	partNumber: vars.partNumber,
+	contentVersionId: vars.newContentVersionId,
+	contentDocumentId: vars.newContentDocumentId,
+	contentDocumentLinkId: vars.newContentDocumentLinkId
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+	</sub-flow>
+
+</mule>

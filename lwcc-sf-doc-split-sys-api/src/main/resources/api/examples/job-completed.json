@@ -1,0 +1,77 @@
+{
+  "jobId": "job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d",
+  "status": "COMPLETED",
+  "progress": {
+    "currentStep": "Complete",
+    "completedSteps": 5,
+    "totalSteps": 5,
+    "percentComplete": 100
+  },
+  "createdAt": "2026-01-20T14:30:00+05:30",
+  "startedAt": "2026-01-20T14:30:02+05:30",
+  "completedAt": "2026-01-20T14:35:22+05:30",
+  "correlationId": "550e8400-e29b-41d4-a716-446655440000",
+  "result": {
+    "claimId": "a0B5g00000AbCdEfGh",
+    "sourceContentDocumentId": "069Hp00000BcDeFgHi",
+    "sourceContentVersionId": "068Hp00000CdEfGhIj",
+    "originalFileName": "ClaimEvidence_2026.pdf",
+    "originalSizeBytes": 47185920,
+    "originalPageCount": 156,
+    "partCount": 4,
+    "status": "COMPLETED",
+    "dryRun": false,
+    "parts": [
+      {
+        "partNumber": 1,
+        "pageStart": 1,
+        "pageEnd": 42,
+        "pageCount": 42,
+        "sizeBytes": 14728192,
+        "sizeMb": 14.04,
+        "contentVersionId": "068Hp00000AAAA001",
+        "contentDocumentId": "069Hp00000BBBB001",
+        "contentDocumentLinkId": "06AHp00000CCCC001",
+        "fileName": "ClaimEvidence_2026_part01.pdf"
+      },
+      {
+        "partNumber": 2,
+        "pageStart": 43,
+        "pageEnd": 81,
+        "pageCount": 39,
+        "sizeBytes": 14155776,
+        "sizeMb": 13.50,
+        "contentVersionId": "068Hp00000AAAA002",
+        "contentDocumentId": "069Hp00000BBBB002",
+        "contentDocumentLinkId": "06AHp00000CCCC002",
+        "fileName": "ClaimEvidence_2026_part02.pdf"
+      },
+      {
+        "partNumber": 3,
+        "pageStart": 82,
+        "pageEnd": 118,
+        "pageCount": 37,
+        "sizeBytes": 13631488,
+        "sizeMb": 13.00,
+        "contentVersionId": "068Hp00000AAAA003",
+        "contentDocumentId": "069Hp00000BBBB003",
+        "contentDocumentLinkId": "06AHp00000CCCC003",
+        "fileName": "ClaimEvidence_2026_part03.pdf"
+      },
+      {
+        "partNumber": 4,
+        "pageStart": 119,
+        "pageEnd": 156,
+        "pageCount": 38,
+        "sizeBytes": 4670464,
+        "sizeMb": 4.45,
+        "contentVersionId": "068Hp00000AAAA004",
+        "contentDocumentId": "069Hp00000BBBB004",
+        "contentDocumentLinkId": "06AHp00000CCCC004",
+        "fileName": "ClaimEvidence_2026_part04.pdf"
+      }
+    ],
+    "correlationId": "550e8400-e29b-41d4-a716-446655440000",
+    "timestamp": "2026-01-20T14:35:22+05:30"
+  }
+}

@@ -1,0 +1,46 @@
+# ============================================
+# Training Environment Configuration
+# Salesforce PDF Document Split System API
+# ============================================
+
+# HTTP Listener Configuration
+http:
+  port: "8081"
+
+# Environment identifier
+mule.env: "training"
+
+# API Configuration
+# TODO: Replace "0" with actual API ID from API Manager after registration
+api:
+  id: "0"
+  basePath: "/sys/sf-doc-split/v1"
+  version: "1.0.0"
+  name: "SF Document Split System API"
+
+# Salesforce JWT Configuration
+sfdc:
+  alias: "muletraining2025"
+  endpoint: "https://test.salesforce.com/services/oauth2/token"
+  audience: "https://test.salesforce.com"
+  principal: "sfanypointapi@lwcc.com.training"
+  instanceUrl: "https://lwcc--training.sandbox.my.salesforce.com"
+  instance:
+    host: "lwcc--training.sandbox.my.salesforce.com"
+
+# Object Store Configuration
+objectstore:
+  idempotency:
+    maxEntries: "10000"
+    ttlMs: "86400000"
+  jobs:
+    maxEntries: "5000"
+    ttlMs: "604800000"
+
+# Job Worker Configuration
+job:
+  worker:
+    maxConcurrency: "4"
+    consumers: "2"
+  cleanup:
+    frequency: "24"

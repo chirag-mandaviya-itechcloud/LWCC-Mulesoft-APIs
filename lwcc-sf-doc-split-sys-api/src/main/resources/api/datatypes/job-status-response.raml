@@ -1,0 +1,47 @@
+#%RAML 1.0 DataType
+
+displayName: Job Status Response
+description: Response containing the current status and results of an async split job
+
+type: object
+properties:
+  jobId:
+    type: string
+    description: Unique identifier for the split job
+    pattern: ^job_[a-f0-9-]{36}$
+    example: job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d
+  status:
+    type: string
+    enum: [ACCEPTED, VALIDATING, DOWNLOADING, SPLITTING, UPLOADING, COMPLETED, FAILED]
+    description: Current job status
+    example: COMPLETED
+  progress:
+    type: !include job-progress.raml
+    description: Progress information for the job
+    required: false
+  createdAt:
+    type: datetime
+    description: Timestamp when the job was created
+    example: 2026-01-20T14:30:00+05:30
+  startedAt:
+    type: datetime
+    description: Timestamp when processing started
+    required: false
+    example: 2026-01-20T14:30:02+05:30
+  completedAt:
+    type: datetime
+    description: Timestamp when the job completed (success or failure)
+    required: false
+    example: 2026-01-20T14:35:22+05:30
+  correlationId:
+    type: string
+    description: Correlation ID for request tracing
+    example: 550e8400-e29b-41d4-a716-446655440000
+  result:
+    type: !include split-response.raml
+    description: Split result (only present when status is COMPLETED)
+    required: false
+  error:
+    type: !include error-response.raml
+    description: Error details (only present when status is FAILED)
+    required: false

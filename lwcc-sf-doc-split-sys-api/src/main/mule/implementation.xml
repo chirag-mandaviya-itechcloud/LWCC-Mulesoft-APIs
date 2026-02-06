@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+		http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+		http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<!-- ============================================== -->
+	<!-- HEALTH CHECK ENDPOINT                          -->
+	<!-- GET /health                                    -->
+	<!-- ============================================== -->
+	<flow name="get:\health:sf-doc-split-api-config"
+		doc:id="health-flow"
+		doc:name="get:\health:sf-doc-split-api-config">
+
+		<logger doc:name="Log Health Check"
+			doc:id="log-health"
+			level="DEBUG"
+			message="Health check requested" />
+
+		<ee:transform doc:name="Build Health Response"
+			doc:id="build-health-response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	status: "healthy",
+	version: p('api.version') default "1.0.0",
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"},
+	uptime: "Running",
+	dependencies: {
+		salesforce: {
+			status: "healthy",
+			lastChecked: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+		},
+		objectStore: {
+			status: "healthy",
+			lastChecked: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+		},
+		jobQueue: {
+			status: "healthy",
+			pendingJobs: 0,
+			lastChecked: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- READINESS PROBE                                -->
+	<!-- GET /ready                                     -->
+	<!-- ============================================== -->
+	<flow name="get:\ready:sf-doc-split-api-config"
+		doc:id="ready-flow"
+		doc:name="get:\ready:sf-doc-split-api-config">
+
+		<ee:transform doc:name="Build Ready Response"
+			doc:id="build-ready-response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	status: "ready",
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- LIVENESS PROBE                                 -->
+	<!-- GET /live                                      -->
+	<!-- ============================================== -->
+	<flow name="get:\live:sf-doc-split-api-config"
+		doc:id="live-flow"
+		doc:name="get:\live:sf-doc-split-api-config">
+
+		<ee:transform doc:name="Build Live Response"
+			doc:id="build-live-response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	status: "alive",
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- SYNCHRONOUS SPLIT ENDPOINT                     -->
+	<!-- POST /claims/{claimId}/documents/{contentDocumentId}/split -->
+	<!-- ============================================== -->
+	<flow name="post:\claims\(claimId)\documents\(contentDocumentId)\split:sf-doc-split-api-config"
+		doc:id="sync-split-flow"
+		doc:name="post:\claims\(claimId)\documents\(contentDocumentId)\split:sf-doc-split-api-config">
+
+		<!-- Extract all request parameters in single transform -->
+		<ee:transform doc:name="Extract Request Parameters"
+			doc:id="extract-request-params">
+			<ee:variables>
+				<ee:set-variable variableName="claimId"><![CDATA[attributes.uriParams.claimId]]></ee:set-variable>
+				<ee:set-variable variableName="contentDocumentId"><![CDATA[attributes.uriParams.contentDocumentId]]></ee:set-variable>
+				<ee:set-variable variableName="maxPartSizeMb"><![CDATA[p('split.maxPartSizeMb') as Number]]></ee:set-variable>
+				<ee:set-variable variableName="maxParts"><![CDATA[attributes.queryParams.maxParts default p('split.maxParts') as Number]]></ee:set-variable>
+				<ee:set-variable variableName="dryRun"><![CDATA[attributes.queryParams.dryRun default false]]></ee:set-variable>
+				<ee:set-variable variableName="forceRefresh"><![CDATA[attributes.queryParams.forceRefresh default false]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- JSON structured log: Split request received -->
+		<json-logger:logger
+			doc:name="Log Split Request"
+			doc:id="log-split-request"
+			config-ref="JSON_Logger_Config"
+			message="Split request received"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "sync-split-flow",
+	step: "REQUEST_RECEIVED",
+	claimId: vars.claimId,
+	contentDocumentId: vars.contentDocumentId,
+	dryRun: vars.dryRun,
+	forceRefresh: vars.forceRefresh
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Step 1: Validate Claim Exists -->
+		<flow-ref doc:name="Validate Claim"
+			doc:id="ref-validate-claim"
+			name="validate-claim-subflow" />
+
+		<!-- Step 2: Validate Document Link -->
+		<flow-ref doc:name="Validate Document Link"
+			doc:id="ref-validate-doc-link"
+			name="validate-document-link-subflow" />
+
+		<!-- Step 3: Fetch ContentVersion Metadata -->
+		<flow-ref doc:name="Fetch ContentVersion"
+			doc:id="ref-fetch-content-version"
+			name="fetch-content-version-subflow" />
+
+		<!-- Step 4: Validate is PDF -->
+		<choice doc:name="Check if PDF"
+			doc:id="check-pdf">
+			<when expression="#[lower(vars.contentVersion.FileExtension default '') != 'pdf']">
+				<raise-error doc:name="Raise NOT_A_PDF"
+					doc:id="raise-not-pdf"
+					type="APP:NOT_A_PDF"
+					description="Document is not a PDF file" />
+			</when>
+		</choice>
+
+		<!-- Step 5: Check Idempotency (if enabled) -->
+		<choice doc:name="Check Idempotency Enabled"
+			doc:id="check-idempotency-enabled">
+			<when expression="#[p('idempotency.enabled') == 'true' or p('idempotency.enabled') == true]">
+				<!-- Idempotency enabled - check cache -->
+				<flow-ref doc:name="Check Idempotency"
+					doc:id="ref-check-idempotency"
+					name="check-idempotency-subflow" />
+
+				<!-- Step 6: If cached result exists and forceRefresh is false, return it -->
+				<choice doc:name="Check Idempotency Hit"
+					doc:id="check-idempotency-hit">
+					<when expression="#[vars.idempotencyResult != null and vars.idempotencyResult.status == 'COMPLETED' and (vars.forceRefresh != true and vars.forceRefresh != 'true')]">
+						<json-logger:logger
+							doc:name="Log Idempotency Hit"
+							doc:id="log-idempotency-hit"
+							config-ref="JSON_Logger_Config"
+							message="Returning cached result"
+							tracePoint="FLOW"
+							priority="INFO">
+							<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "sync-split-flow",
+	step: "IDEMPOTENCY_HIT",
+	cacheStatus: "HIT",
+	message: "Use forceRefresh=true to bypass cache"
+}]]]></json-logger:content>
+						</json-logger:logger>
+						<set-payload doc:name="Set Cached Result"
+							doc:id="set-cached-result"
+							value="#[vars.idempotencyResult.result]" />
+					</when>
+					<otherwise>
+						<!-- Process the split (either no cache or forceRefresh=true) -->
+						<json-logger:logger
+							doc:name="Log Processing"
+							doc:id="log-processing-split"
+							config-ref="JSON_Logger_Config"
+							message="Processing split request"
+							tracePoint="FLOW"
+							priority="INFO">
+							<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "sync-split-flow",
+	step: "PROCESSING_SPLIT",
+	forceRefresh: vars.forceRefresh,
+	hasCachedResult: vars.idempotencyResult != null
+}]]]></json-logger:content>
+						</json-logger:logger>
+						<flow-ref doc:name="Process Split"
+							doc:id="ref-process-split"
+							name="process-split-subflow" />
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise>
+				<!-- Idempotency disabled - always process fresh -->
+				<json-logger:logger
+					doc:name="Log Idempotency Disabled"
+					doc:id="log-idempotency-disabled"
+					config-ref="JSON_Logger_Config"
+					message="Idempotency disabled, processing fresh"
+					tracePoint="FLOW"
+					priority="INFO">
+					<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "sync-split-flow",
+	step: "IDEMPOTENCY_SKIP"
+}]]]></json-logger:content>
+				</json-logger:logger>
+				<flow-ref doc:name="Process Split Direct"
+					doc:id="ref-process-split-direct"
+					name="process-split-subflow" />
+			</otherwise>
+		</choice>
+
+		<json-logger:logger
+			doc:name="Log Split Complete"
+			doc:id="log-split-complete"
+			config-ref="JSON_Logger_Config"
+			message="Split processing completed"
+			tracePoint="END"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "sync-split-flow",
+	step: "SPLIT_COMPLETED",
+	claimId: vars.claimId
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- ASYNC JOB CREATION ENDPOINT                    -->
+	<!-- POST /claims/{claimId}/documents/{contentDocumentId}/split-jobs -->
+	<!-- ============================================== -->
+	<flow name="post:\claims\(claimId)\documents\(contentDocumentId)\split-jobs:sf-doc-split-api-config"
+		doc:id="async-job-flow"
+		doc:name="post:\claims\(claimId)\documents\(contentDocumentId)\split-jobs:sf-doc-split-api-config">
+
+		<!-- Extract all parameters in single transform -->
+		<ee:transform doc:name="Extract Async Job Parameters"
+			doc:id="extract-async-params">
+			<ee:variables>
+				<ee:set-variable variableName="claimId"><![CDATA[attributes.uriParams.claimId]]></ee:set-variable>
+				<ee:set-variable variableName="contentDocumentId"><![CDATA[attributes.uriParams.contentDocumentId]]></ee:set-variable>
+				<ee:set-variable variableName="jobId"><![CDATA['job_' ++ uuid()]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- JSON structured log: Job created -->
+		<json-logger:logger
+			doc:name="Log Job Creation"
+			doc:id="log-job-creation"
+			config-ref="JSON_Logger_Config"
+			message="Async job created"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "async-job-flow",
+	step: "JOB_CREATED",
+	jobId: vars.jobId,
+	claimId: vars.claimId,
+	contentDocumentId: vars.contentDocumentId
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Step 1: Validate Claim Exists -->
+		<flow-ref doc:name="Validate Claim"
+			doc:id="ref-validate-claim-async"
+			name="validate-claim-subflow" />
+
+		<!-- Step 2: Validate Document Link -->
+		<flow-ref doc:name="Validate Document Link"
+			doc:id="ref-validate-doc-link-async"
+			name="validate-document-link-subflow" />
+
+		<!-- Step 3: Store Job Record in Object Store -->
+		<ee:transform doc:name="Build Job Record"
+			doc:id="build-job-record">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	jobId: vars.jobId,
+	status: "ACCEPTED",
+	claimId: vars.claimId,
+	contentDocumentId: vars.contentDocumentId,
+	correlationId: vars.correlationId,
+	maxPartSizeMb: p('split.maxPartSizeMb') as Number,
+	maxParts: p('split.maxParts') as Number,
+	createdAt: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"},
+	progress: {
+		currentStep: "Queued for processing",
+		completedSteps: 0,
+		totalSteps: 5,
+		percentComplete: 0
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<os:store doc:name="Store Job Record"
+			doc:id="store-job-record"
+			key="#[vars.jobId]"
+			objectStore="Jobs_Object_Store">
+			<os:value><![CDATA[#[payload]]]></os:value>
+		</os:store>
+
+		<!-- Step 4: Publish to VM Queue for async processing -->
+		<vm:publish doc:name="Publish to Job Queue"
+			doc:id="publish-job-queue"
+			config-ref="VM_Config"
+			queueName="split-job-queue">
+			<vm:content><![CDATA[#[{
+	jobId: vars.jobId,
+	claimId: vars.claimId,
+	contentDocumentId: vars.contentDocumentId,
+	correlationId: vars.correlationId,
+	maxPartSizeMb: p('split.maxPartSizeMb') as Number,
+	maxParts: p('split.maxParts') as Number
+}]]]></vm:content>
+		</vm:publish>
+
+		<!-- Step 5: Set HTTP Status to 202 Accepted -->
+		<set-variable doc:name="Set HTTP Status 202"
+			doc:id="set-http-202"
+			variableName="httpStatus"
+			value="#[202]" />
+
+		<!-- Step 6: Add Location header -->
+		<set-variable doc:name="Update outbound headers"
+			doc:id="update-outbound-headers"
+			variableName="outboundHeaders"
+			value="#[vars.outboundHeaders ++ {'Location': '/split-jobs/' ++ vars.jobId, 'X-Job-Id': vars.jobId}]" />
+
+		<!-- Build Response -->
+		<ee:transform doc:name="Build Accepted Response"
+			doc:id="build-accepted-response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	jobId: vars.jobId,
+	status: "ACCEPTED",
+	statusUrl: "/split-jobs/" ++ vars.jobId,
+	createdAt: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"},
+	message: "Split job accepted and queued for processing"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- JOB STATUS ENDPOINT                            -->
+	<!-- GET /split-jobs/{jobId}                        -->
+	<!-- ============================================== -->
+	<flow name="get:\split-jobs\(jobId):sf-doc-split-api-config"
+		doc:id="job-status-flow"
+		doc:name="get:\split-jobs\(jobId):sf-doc-split-api-config">
+
+		<set-variable doc:name="Set jobId"
+			doc:id="set-job-id-status"
+			variableName="jobId"
+			value="#[attributes.uriParams.jobId]" />
+
+		<json-logger:logger
+			doc:name="Log Job Status Request"
+			doc:id="log-job-status"
+			config-ref="JSON_Logger_Config"
+			message="Job status request"
+			tracePoint="FLOW"
+			priority="DEBUG">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "job-status-flow",
+	step: "STATUS_REQUEST",
+	jobId: vars.jobId
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Retrieve job from Object Store -->
+		<try doc:name="Try retrieve job"
+			doc:id="try-retrieve-job">
+			<os:retrieve doc:name="Retrieve Job"
+				doc:id="retrieve-job"
+				key="#[vars.jobId]"
+				objectStore="Jobs_Object_Store"
+				target="jobRecord" />
+
+			<error-handler>
+				<on-error-continue doc:name="On Job Not Found"
+					doc:id="on-job-not-found"
+					type="OS:KEY_NOT_FOUND">
+					<raise-error doc:name="Raise JOB_NOT_FOUND"
+						doc:id="raise-job-not-found"
+						type="APP:JOB_NOT_FOUND"
+						description="Job not found or has expired" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+		<!-- Build Response based on job status -->
+		<ee:transform doc:name="Build Job Status Response"
+			doc:id="build-job-status-response">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	jobId: vars.jobRecord.jobId,
+	status: vars.jobRecord.status,
+	progress: vars.jobRecord.progress default null,
+	createdAt: vars.jobRecord.createdAt,
+	startedAt: vars.jobRecord.startedAt default null,
+	completedAt: vars.jobRecord.completedAt default null,
+	correlationId: vars.jobRecord.correlationId,
+	(result: vars.jobRecord.result) if (vars.jobRecord.status == "COMPLETED"),
+	(error: vars.jobRecord.error) if (vars.jobRecord.status == "FAILED")
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<!-- Add job status headers -->
+		<set-variable doc:name="Update headers with job info"
+			doc:id="update-headers-job"
+			variableName="outboundHeaders"
+			value="#[vars.outboundHeaders ++ {'X-Job-Status': vars.jobRecord.status, 'X-Job-Progress': vars.jobRecord.progress.percentComplete default 0}]" />
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- LIST JOBS ENDPOINT                             -->
+	<!-- GET /split-jobs                                -->
+	<!-- ============================================== -->
+	<flow name="get:\split-jobs:sf-doc-split-api-config"
+		doc:id="list-jobs-flow"
+		doc:name="get:\split-jobs:sf-doc-split-api-config">
+
+		<json-logger:logger
+			doc:name="Log List Jobs Request"
+			doc:id="log-list-jobs"
+			config-ref="JSON_Logger_Config"
+			message="List jobs request"
+			tracePoint="FLOW"
+			priority="DEBUG">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "list-jobs-flow",
+	step: "LIST_REQUEST"
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- For now, return empty list - full implementation would scan Object Store -->
+		<ee:transform doc:name="Build Jobs List Response"
+			doc:id="build-jobs-list">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	jobs: [],
+	pagination: {
+		total: 0,
+		limit: attributes.queryParams.limit default 20,
+		offset: attributes.queryParams.offset default 0,
+		hasMore: false
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+	</flow>
+
+	<!-- ============================================== -->
+	<!-- DELETE/CANCEL JOB ENDPOINT                     -->
+	<!-- DELETE /split-jobs/{jobId}                     -->
+	<!-- ============================================== -->
+	<flow name="delete:\split-jobs\(jobId):sf-doc-split-api-config"
+		doc:id="cancel-job-flow"
+		doc:name="delete:\split-jobs\(jobId):sf-doc-split-api-config">
+
+		<set-variable doc:name="Set jobId"
+			doc:id="set-job-id-cancel"
+			variableName="jobId"
+			value="#[attributes.uriParams.jobId]" />
+
+		<json-logger:logger
+			doc:name="Log Cancel Request"
+			doc:id="log-cancel"
+			config-ref="JSON_Logger_Config"
+			message="Job cancel request"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	flowName: "cancel-job-flow",
+	step: "CANCEL_REQUEST",
+	jobId: vars.jobId
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Retrieve job to check status -->
+		<try doc:name="Try retrieve job for cancel"
+			doc:id="try-retrieve-job-cancel">
+			<os:retrieve doc:name="Retrieve Job for Cancel"
+				doc:id="retrieve-job-cancel"
+				key="#[vars.jobId]"
+				objectStore="Jobs_Object_Store"
+				target="jobRecord" />
+
+			<error-handler>
+				<on-error-continue doc:name="On Job Not Found"
+					doc:id="on-job-not-found-cancel"
+					type="OS:KEY_NOT_FOUND">
+					<raise-error doc:name="Raise JOB_NOT_FOUND"
+						doc:id="raise-job-not-found-cancel"
+						type="APP:JOB_NOT_FOUND"
+						description="Job not found" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+		<!-- Check if job can be cancelled -->
+		<choice doc:name="Check if cancellable"
+			doc:id="check-cancellable">
+			<when expression="#[vars.jobRecord.status == 'COMPLETED' or vars.jobRecord.status == 'FAILED']">
+				<raise-error doc:name="Raise cannot cancel"
+					doc:id="raise-cannot-cancel"
+					type="APP:VALIDATION_ERROR"
+					description="Cannot cancel a completed or failed job" />
+			</when>
+			<otherwise>
+				<!-- Remove from Object Store -->
+				<os:remove doc:name="Remove Job"
+					doc:id="remove-job"
+					key="#[vars.jobId]"
+					objectStore="Jobs_Object_Store" />
+
+				<!-- Set 204 No Content -->
+				<set-variable doc:name="Set HTTP Status 204"
+					doc:id="set-http-204"
+					variableName="httpStatus"
+					value="#[204]" />
+
+				<set-payload doc:name="Empty payload"
+					doc:id="empty-payload"
+					value="#[null]" />
+			</otherwise>
+		</choice>
+
+	</flow>
+
+</mule>

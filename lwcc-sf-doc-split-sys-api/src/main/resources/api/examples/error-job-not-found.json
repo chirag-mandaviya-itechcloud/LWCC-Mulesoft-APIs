@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-20T14:35:22+05:30",
+  "correlationId": "550e8400-e29b-41d4-a716-446655440000",
+  "errorCode": "JOB_NOT_FOUND",
+  "message": "Split job not found or has expired",
+  "details": {
+    "jobId": "job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d",
+    "hint": "Job records are retained for 24 hours after completion"
+  },
+  "retryable": false
+}

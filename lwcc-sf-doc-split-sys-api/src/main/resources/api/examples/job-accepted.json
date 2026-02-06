@@ -1,0 +1,7 @@
+{
+  "jobId": "job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d",
+  "status": "ACCEPTED",
+  "statusUrl": "/split-jobs/job_7f3a8c2d-1e4b-5f6a-9c0d-2e3f4a5b6c7d",
+  "createdAt": "2026-01-20T14:30:00+05:30",
+  "message": "Split job accepted and queued for processing"
+}

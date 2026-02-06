@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>    
+    
+    <!--BOM-->
+	<groupId>18404cbf-4922-41d8-a8bd-e903f45d1b04</groupId>
+    <artifactId>solutions-bom</artifactId>
+	<!-- changed below value from 0.0.1 date 09-07-2023-->
+    <!-- changed below value from 0.0.3 date 16-10-2024-->    
+    <version>0.0.5</version>
+    <packaging>pom</packaging>
+
+    <name>solutions-bom</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <resource.plugin.version>3.1.0</resource.plugin.version>
+		<!-- changed below value from 4.3.0 date 09-07-2023-->
+        <app.runtime>4.6.2</app.runtime>
+        <app.runtime.semver>4.3.0</app.runtime.semver>
+		<!-- changed below value from 3.5.2 date 09-07-2023-->
+        <mule.maven.plugin.version>4.5.2</mule.maven.plugin.version>
+		<!-- changed below value from 1.5.6 date 09-07-2023-->
+        <apikit.version>1.10.4</apikit.version>
+		<!-- changed below value from 1.6.0 date 09-07-2023-->
+        <http.connector.version>1.10.0</http.connector.version>
+        <secure.conf.prop.module.version>1.2.7</secure.conf.prop.module.version>
+		<!-- changed below value from 1.4.5 date 09-07-2023-->
+        <mule-validation-module.version>2.0.6</mule-validation-module.version>
+		<!-- changed below value from 1.2.2 date 09-07-2023-->
+        <mule-sockets-connector.version>1.2.4</mule-sockets-connector.version>
+		<!-- changed below value from 1.2.9 date 09-07-2023-->
+        <mule-java-module.version>1.2.14</mule-java-module.version>
+        <type>custom</type>
+
+        <!-- TODO: Update the Org id -->
+        <orgid>18404cbf-4922-41d8-a8bd-e903f45d1b04</orgid>
+        <!-- TODO: Publish JSON logger to Anypoint Platform Exchange-->
+        <json.logger.ver>2.2.0</json.logger.ver>
+		<!-- changed below value from 2.3.6 date 09-07-2023-->
+        <munit.version>3.2.0</munit.version>
+
+        <maven.release.plugin.version>3.1.1</maven.release.plugin.version>
+        <mule-objectstore-connector.version>1.2.2</mule-objectstore-connector.version>
+        <mule-salesforce-connector.version>11.1.1</mule-salesforce-connector.version>
+
+    </properties>
+
+    <!--********************************-->
+    <build>
+        
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${resource.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.mule.tools.maven</groupId>
+                    <artifactId>mule-maven-plugin</artifactId>
+                    <version>${mule.maven.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.mulesoft.munit.tools</groupId>
+                    <artifactId>munit-maven.plugin</artifactId>
+                    <version>${munit.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>${maven.release.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.mule.tools.maven</groupId>
+                    <artifactId>exchange-mule-maven-plugin</artifactId>
+                    <version>0.0.23</version>
+                    <inherited>false</inherited>
+                    <executions>
+                        <execution>
+                            <id>validate</id>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>exchange-pre-deploy</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>deploy</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>exchange-deploy</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        
+    </build>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.mule.connectors</groupId>
+                <artifactId>mule-http-connector</artifactId>
+                <version>${http.connector.version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.modules</groupId>
+                <artifactId>mule-apikit-module</artifactId>
+                <version>${apikit.version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>com.mulesoft.modules</groupId>
+                <artifactId>mule-secure-configuration-property-module</artifactId>
+                <classifier>mule-plugin</classifier>
+                <version>${secure.conf.prop.module.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${orgid}</groupId>
+                <artifactId>json-logger</artifactId>
+                <version>${json.logger.ver}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.modules</groupId>
+                <artifactId>mule-validation-module</artifactId>
+                <version>${mule-validation-module.version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.connectors</groupId>
+                <artifactId>mule-sockets-connector</artifactId>
+                <version>${mule-sockets-connector.version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.module</groupId>
+                <artifactId>mule-java-module</artifactId>
+                <version>${mule-java-module.version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <!-- MUnit -->
+            <dependency>
+                <groupId>com.mulesoft.munit</groupId>
+                <artifactId>munit-runner</artifactId>
+                <version>${munit.version}</version>
+                <classifier>mule-plugin</classifier>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.mulesoft.munit</groupId>
+                <artifactId>munit-tools</artifactId>
+                <version>${munit.version}</version>
+                <classifier>mule-plugin</classifier>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mule.connectors</groupId>
+                <artifactId>mule-objectstore-connector</artifactId>
+                <version>${mule-objectstore-connector.version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <dependency>
+                <groupId>com.mulesoft.connectors</groupId>
+                <artifactId>mule-salesforce-connector</artifactId>
+                <version>${mule-salesforce-connector.version}</version>
+                <classifier>mule-plugin</classifier>
+            </dependency>
+            <!-- ********** -->
+        </dependencies>
+    </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>release-ee</id>
+            <name>MuleRepository</name>
+            <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
+            <layout>default</layout>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>anypoint-exchange-v2</id>
+            <name>Anypoint Exchange</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <id>mulesoft-releases</id>
+            <name>MuleSoft Releases Repository</name>
+            <url>https://repository.mulesoft.org/releases/</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <id>anypoint-exchange-v3</id>
+            <name>Anypoint Exchange</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+            <layout>default</layout>
+        </repository>
+        <!-- TODO: Replace this with appropriate artefactory repo where BOM will be published -->
+		<repository>
+			<id>Exchange2</id>
+			<name>Exchange2 Repository</name>
+			<url>https://maven.anypoint.mulesoft.com/api/v3/organizations/${project.groupId}/maven</url>
+			<layout>default</layout>
+		</repository>
+        <!--**********************************************************************************-->
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>release-ee</id>
+            <name>mule release repository</name>
+            <layout>default</layout>
+            <url>https://repository.mulesoft.org/nexus/content/repositories/release-ee</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>mulesoft-releases</id>
+            <name>mulesoft release repository</name>
+            <layout>default</layout>
+            <url>https://repository.mulesoft.org/releases/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
+	<distributionManagement>
+		<!-- TODO: Replace repository with your artifact repo details. Anypoint Exchnage example. Please Add appropriate ${project.groupId} -->
+		<repository>
+			<id>Exchange2</id>
+			<name>Exchange2 Repository</name>
+			<url>https://maven.anypoint.mulesoft.com/api/v3/organizations/${project.groupId}/maven</url>
+			<layout>default</layout>
+		</repository>
+	</distributionManagement>    
+    <!-- TODO: Replace this with appropriate artefactory repo where BOM will be published azure example -->
+<!--    <distributionManagement>
+        <repository>
+            <id>mulesoft-consulting</id>
+            <url>https://pkgs.dev.azure.com/mulesoft-consulting/_packaging/mulesoft-consulting/maven/v1</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </distributionManagement> -->
+    <!--**********************************************************************************-->
+</project>

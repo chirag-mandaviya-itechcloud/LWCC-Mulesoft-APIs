@@ -1,0 +1,46 @@
+# ============================================
+# DEV01 Environment Configuration
+# Salesforce PDF Document Split System API
+# ============================================
+
+# HTTP Listener Configuration
+http:
+  port: "8081"
+
+# Environment identifier
+mule.env: "dev01"
+
+# API Configuration
+# TODO: Replace with actual API ID from API Manager after registration
+api:
+  id: "0"
+  basePath: "/sys/sf-doc-split/v1"
+  version: "1.0.0"
+  name: "SF Document Split System API"
+
+# Salesforce JWT Configuration
+sfdc:
+  alias: "muledev012025"
+  endpoint: "https://test.salesforce.com/services/oauth2/token"
+  audience: "https://test.salesforce.com"
+  principal: "sfanypointapi@lwcc.com.dev01"
+  instanceUrl: "https://lwcc--dev01.sandbox.my.salesforce.com"
+  instance:
+    host: "lwcc--dev01.sandbox.my.salesforce.com"
+
+# Object Store Configuration
+objectstore:
+  idempotency:
+    maxEntries: "10000"
+    ttlMs: "86400000"
+  jobs:
+    maxEntries: "5000"
+    ttlMs: "604800000"
+
+# Job Worker Configuration
+job:
+  worker:
+    maxConcurrency: "4"
+    consumers: "2"
+  cleanup:
+    frequency: "24"

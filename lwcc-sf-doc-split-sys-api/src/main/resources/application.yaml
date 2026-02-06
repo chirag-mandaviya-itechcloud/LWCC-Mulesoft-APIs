@@ -1,0 +1,102 @@
+# ============================================
+# Application Configuration
+# Salesforce PDF Document Split System API
+# ============================================
+
+# HTTP Listener Configuration
+http:
+  listener:
+    host: "0.0.0.0"
+    port: "8081"
+
+# API Configuration
+api:
+  basePath: "/sys/sf-doc-split/v1"
+  version: "1.0.0"
+  name: "SF Document Split System API"
+
+# Salesforce Configuration
+# NOTE: Override these values in environment-specific config files
+# or via CloudHub secure properties
+salesforce:
+  # Authentication
+  username: "${secure::salesforce.username}"
+  password: "${secure::salesforce.password}"
+  securityToken: "${secure::salesforce.securityToken}"
+  authUrl: "https://login.salesforce.com/services/Soap/u/59.0"
+
+  # Connection Settings
+  connectionTimeout: 30000
+  readTimeout: 120000
+
+  # Retry Configuration
+  maxRetries: 3
+  retryDelay: 1000
+
+# Object Store Configuration
+objectstore:
+  # Idempotency Store
+  idempotency:
+    entryTtl: 86400000      # 24 hours in milliseconds
+    maxEntries: 10000
+    persistent: true
+
+  # Job State Store
+  jobs:
+    entryTtl: 604800000     # 7 days in milliseconds
+    maxEntries: 5000
+    persistent: true
+
+# Async Job Configuration
+job:
+  # Worker Settings
+  worker:
+    maxConcurrency: 4       # Max concurrent job processing
+    consumers: 2            # Number of VM queue consumers
+
+  # Queue Settings
+  queue:
+    maxOutstandingMessages: 100
+
+  # Cleanup Settings
+  cleanup:
+    frequency: 24           # Hours between cleanup runs
+
+# PDF Split Configuration
+split:
+  # Size Limits
+  maxPartSizeMb: 10
+  maxParts: 5
+  defaultPartSizeMb: 10
+
+  # File Naming
+  defaultNamingPattern: "{originalName}_Part{partNumber}"
+
+  # Processing
+  streamingThresholdMb: 50  # Use streaming for files larger than this
+  tempDirectory: "/tmp/pdf-split"
+
+# Health Check Configuration
+health:
+  # Dependency Check Timeouts
+  salesforce:
+    timeout: 5000
+  objectStore:
+    timeout: 2000
+
+  # Cache Settings
+  cacheSeconds: 30
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  maskPatterns:
+    - "password"
+    - "securityToken"
+    - "Authorization"
+
+# Rate Limiting (if implemented)
+rateLimit:
+  enabled: false
+  requestsPerMinute: 60
+  burstSize: 10

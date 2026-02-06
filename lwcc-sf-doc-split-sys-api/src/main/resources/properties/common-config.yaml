@@ -1,0 +1,88 @@
+# ============================================
+# Common Configuration (Environment Independent)
+# lwcc-sf-doc-split-sys-api
+# ============================================
+
+# JSON Logger Application Identity
+json.logger.application:
+  name: "${project.artifactId}"
+  version: "${project.version}"
+
+# API Configuration
+api:
+  basePath: "/sys/sf-doc-split/v1"
+  version: "1.0.0"
+  name: "SF Document Split System API"
+
+# Connector Settings (common across environments)
+connector:
+  retries: "3"
+  retryInterval: "5000"
+  response:
+    timeout: "300000"
+
+# Salesforce Connection Settings (common)
+salesforce:
+  connectionTimeout: "30000"
+  readTimeout: "120000"
+  maxRetries: "3"
+  retryDelay: "1000"
+  callback:
+    enabled: "true"
+    path: "SplitDocUploadCallback"
+
+# Object Store Configuration
+objectstore:
+  idempotency:
+    maxEntries: "10000"
+    ttlMs: "86400000"
+  jobs:
+    maxEntries: "5000"
+    ttlMs: "604800000"
+
+# Job Worker Configuration
+job:
+  worker:
+    maxConcurrency: "8"
+    consumers: "2"
+  queue:
+    maxOutstandingMessages: "100"
+  cleanup:
+    frequency: "24"
+
+# PDF Split Configuration
+split:
+  maxPartSizeMb: "13"
+  maxParts: "5"
+  defaultPartSizeMb: "13"
+  defaultNamingPattern: "{originalName}_Part{partNumber}"
+  streamingThresholdMb: "50"
+  tempDirectory: "/tmp/pdf-split"
+
+# Idempotency Configuration
+idempotency:
+  enabled: "false"
+  # Set to "false" to disable idempotency caching (always process fresh)
+
+# PDF Compression Configuration
+compression:
+  enabled: "true"
+  level: "maximum"
+  # Levels: none, low, medium, high, maximum
+  # - none: No compression (bypass)
+  # - low: JPEG quality 85%, max 3000px images, preserve metadata
+  # - medium: JPEG quality 70%, max 2000px images, remove metadata (default)
+  # - high: JPEG quality 50%, max 1500px images, remove metadata
+  # - maximum: JPEG quality 30%, max 1200px images, aggressive compression
+
+# Health Check Configuration
+health:
+  salesforce:
+    timeout: "5000"
+  objectStore:
+    timeout: "2000"
+  cacheSeconds: "30"
+
+# Logging Configuration
+logging:
+  level: "INFO"

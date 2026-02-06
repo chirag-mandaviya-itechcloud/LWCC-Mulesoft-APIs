@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--Parent bom -->
+    <parent>
+        <groupId>18404cbf-4922-41d8-a8bd-e903f45d1b04</groupId>
+        <!-- changed below value from 0.0.1 date 09-07-2023-->
+        <artifactId>solutions-bom</artifactId>
+        <version>0.0.5</version>
+    </parent>
+    
+    <groupId>18404cbf-4922-41d8-a8bd-e903f45d1b04</groupId>
+    <artifactId>solutions-parent-pom</artifactId>
+    <!-- changed below value from 0.0.2 date 09-07-2023-->
+    <version>1.0.7</version>
+    <packaging>pom</packaging>
+    <name>solutions-parent-pom</name>
+
+    <properties>
+        <deployment.prefix>mc${deployment.access}-${deployment.region}${deployment.envShort}-</deployment.prefix>
+        <deployment.suffix>-v${deployment.major.version}</deployment.suffix>
+        <deployment.name>${deployment.prefix}${project.artifactId}${deployment.suffix}</deployment.name>
+
+        <ap.environment>${deployment.envName}</ap.environment>
+        <ap.buId>${deployment.buId}</ap.buId>
+        <ap.buName>${deployment.buName}</ap.buName>
+        <ap.region>${deployment.region}</ap.region>
+        <ap.workers>${deployment.workers}</ap.workers>
+        <ap.workerType>${deployment.workerType}</ap.workerType>
+
+        <ca.clientId>${connectedApp.clientId}</ca.clientId>
+        <ca.clientSecret>${connectedApp.clientSecret}</ca.clientSecret>
+
+        <!-- Visualiser properties -->
+        <api.layer.eapi>Experience</api.layer.eapi>
+        <api.layer.papi>Process</api.layer.papi>
+        <api.layer.sapi>System</api.layer.sapi>
+        <api.layer.none>None</api.layer.none>
+        <type>custom</type>
+        <!--  ************************* -->
+    </properties>
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
+        
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <configuration>
+                        <nonFilteredFileExtensions>
+                            <nonFilteredFileExtension>p12</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>crt</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>pem</nonFilteredFileExtension>
+                            <nonFilteredFileExtension>jks</nonFilteredFileExtension>
+                        </nonFilteredFileExtensions>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.mule.tools.maven</groupId>
+                    <artifactId>mule-maven-plugin</artifactId>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <cloudhub2Deployment>
+                            <uri>https://anypoint.mulesoft.com</uri>
+                            <provider>${provider}</provider>
+                            <environment>${environment}</environment>
+                            <target>${target}</target>
+                            <muleVersion>${app.runtime}</muleVersion>
+                            <releaseChannel>${release_channel}</releaseChannel>
+                            <javaVersion>${java_version}</javaVersion>
+                            <connectedAppClientId>${clientid}</connectedAppClientId>
+                            <connectedAppClientSecret>${clientsecret}</connectedAppClientSecret>
+                            <connectedAppGrantType>client_credentials</connectedAppGrantType>
+                            <applicationName>${appname}</applicationName>
+                            <replicas>${replicas}</replicas>
+                            <vCores>${vcores}</vCores>
+                            <properties>
+                                <mule.env>${mule.env}</mule.env>
+                                <anypoint.platform.client_id>${anypoint.platform.client_id}</anypoint.platform.client_id>
+                            </properties>
+                            <secureProperties>
+                                <secure.key>${secure.key}</secure.key>
+                                <anypoint.platform.client_secret>${anypoint.platform.client_secret}</anypoint.platform.client_secret>                                
+                            </secureProperties>	
+                            <deploymentSettings>                                
+                                <lastMileSecurity>false</lastMileSecurity>
+                                <forwardSslSession>false</forwardSslSession>
+                                <generateDefaultPublicUrl>true</generateDefaultPublicUrl>
+                                <http>
+                                    <inbound>                                        
+                                        <publicUrl>${public_url}</publicUrl>
+                                    </inbound>
+                            	</http>
+                            </deploymentSettings>
+                        </cloudhub2Deployment>
+                    </configuration>
+                </plugin>
+
+                <!-- MUnit -->
+                <plugin>
+                    <groupId>com.mulesoft.munit.tools</groupId>
+                    <artifactId>munit-maven-plugin</artifactId>
+                    <version>${munit.version}</version>
+                    <executions>
+                        <execution>
+                            <id>test</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>test</goal>
+                                <goal>coverage-report</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <runtimeVersion>${app.runtime}</runtimeVersion>
+                        <runtimeProduct>MULE_EE</runtimeProduct>
+                        <environmentVariables>
+                            <encrypt.key>${encrypt.key}</encrypt.key>
+                        </environmentVariables>
+                        <coverage>
+                            <runCoverage>true</runCoverage>
+                            <failBuild>false</failBuild>
+                            <requiredApplicationCoverage>0</requiredApplicationCoverage>
+                            <requiredResourceCoverage>0</requiredResourceCoverage>
+                            <requiredFlowCoverage>0</requiredFlowCoverage>
+                            <formats>
+                                <format>console</format>
+                                <format>html</format>
+                                <format>json</format>
+                            </formats>
+                        </coverage>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.mule.tools.maven</groupId>
+                    <artifactId>exchange-mule-maven-plugin</artifactId>
+                    <version>0.0.23</version>
+                    <inherited>false</inherited>
+                    <executions>
+                        <execution>
+                            <id>validate</id>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>exchange-pre-deploy</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>deploy</id>
+                            <phase>deploy</phase>
+                            <goals>
+                                <goal>exchange-deploy</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <!-- ********** -->
+            </plugins>
+        
+    </build>
+
+</project>

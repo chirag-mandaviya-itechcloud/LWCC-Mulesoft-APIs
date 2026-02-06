@@ -1,0 +1,60 @@
+# ============================================
+# UAT Environment Configuration
+# Salesforce PDF Document Split System API
+# ============================================
+
+# HTTP Listener Configuration
+http:
+  port: "8081"
+
+# Environment identifier
+mule.env: "uat"
+
+# API Configuration
+api:
+  id: "20701192"
+  basePath: "/sys/sf-doc-split/v1"
+  version: "1.0.0"
+  name: "SF Document Split System API"
+
+# Salesforce JWT Configuration
+sfdc:
+  alias: "muleuat2025"
+  endpoint: "https://test.salesforce.com/services/oauth2/token"
+  audience: "https://test.salesforce.com"
+  principal: "sfanypointapi@lwcc.com.uat"
+  instanceUrl: "https://lwcc--uat.sandbox.my.salesforce.com"
+  instance:
+    host: "lwcc--uat.sandbox.my.salesforce.com"
+
+# Object Store Configuration
+objectstore:
+  idempotency:
+    maxEntries: "10000"
+    ttlMs: "86400000"
+  jobs:
+    maxEntries: "5000"
+    ttlMs: "604800000"
+
+# Job Worker Configuration
+job:
+  worker:
+    maxConcurrency: "4"
+    consumers: "2"
+  cleanup:
+    frequency: "24"
+
+# PDF Split Configuration
+split:
+  maxPartSizeMb: "10"
+  maxParts: "5"
+  defaultPartSizeMb: "10"
+
+# PDF Compression Configuration
+compression:
+  enabled: "true"
+  level: "maximum"
+
+# Idempotency Configuration
+idempotency:
+  enabled: "false"

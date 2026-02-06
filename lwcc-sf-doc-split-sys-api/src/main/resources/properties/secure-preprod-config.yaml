@@ -1,0 +1,11 @@
+# ============================================
+# SECURE PROPERTIES - Pre-Production Environment
+# lwcc-sf-doc-split-sys-api
+# ============================================
+# Encrypt values using: java -jar secure-properties-tool.jar
+# Key should be provided via -Dsecure.key at runtime
+
+# Salesforce JWT Configuration
+sfdc:
+  password: "![REPLACE_WITH_ENCRYPTED_VALUE]"
+  consumerkey: "![REPLACE_WITH_ENCRYPTED_VALUE]"
