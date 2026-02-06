@@ -1,3 +1,9 @@
 sfdc:
   password: "![CMMay4LTFCl/8WrngtqxETFYQK6rhDCgMKArlxK2QZ8=]"
   consumerkey: "![iTbq4RULjhxH8wf+n12f2tckmlUfbWpMqqBU74VAogGYdfpwp6ASagAugfd6zUg777rMDxLdTTq2JaQJD3UdlzcJH3mZFW5fQoTdmpi5TLXkecgC7He3DXH4W+rNq2A4]"
+
+# IDP Secure Credentials (replace with your encrypted values)
+idp:
+  clientId: "![REPLACE_WITH_ENCRYPTED_CLIENT_ID]"
+  clientSecret: "![REPLACE_WITH_ENCRYPTED_CLIENT_SECRET]"
+  apiKey: "![REPLACE_WITH_ENCRYPTED_API_KEY]"

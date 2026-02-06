@@ -185,6 +185,37 @@
 	</http:request-config>
 
 	<!-- ============================================== -->
+	<!-- IDP HTTP REQUEST CONFIGURATION                 -->
+	<!-- For MuleSoft IDP Document Extraction Service  -->
+	<!-- ============================================== -->
+	<http:request-config name="IDP_HTTP_Config"
+		doc:name="IDP HTTP Config"
+		doc:id="idp-http-config"
+		basePath="${idp.apiVersion}"
+		responseTimeout="${idp.timeout}">
+		<http:request-connection
+			host="${idp.baseUrl}"
+			port="443"
+			protocol="HTTPS">
+			<reconnection>
+				<reconnect frequency="${idp.retryDelay}" count="${idp.maxRetries}" />
+			</reconnection>
+		</http:request-connection>
+	</http:request-config>
+
+	<!-- ============================================== -->
+	<!-- IDP RESULTS OBJECT STORE                       -->
+	<!-- For Aggregating IDP Results Across Parts      -->
+	<!-- ============================================== -->
+	<os:object-store name="IDP_Results_Object_Store"
+		doc:name="IDP Results Object Store"
+		doc:id="idp-results-store"
+		persistent="true"
+		maxEntries="5000"
+		entryTtl="${idp.aggregation.ttlMs}"
+		entryTtlUnit="MILLISECONDS" />
+
+	<!-- ============================================== -->
 	<!-- JSON LOGGER CONFIGURATION                      -->
 	<!-- ============================================== -->
 	<json-logger:config
