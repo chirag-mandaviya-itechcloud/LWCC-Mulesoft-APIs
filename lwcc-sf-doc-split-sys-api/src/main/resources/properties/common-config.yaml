@@ -86,3 +86,21 @@ health:
 # Logging Configuration
 logging:
   level: "INFO"
+
+# IDP (Intelligent Document Processing) Configuration
+idp:
+  enabled: "true"
+  baseUrl: "https://your-idp-service.mulesoft.com"
+  apiVersion: "v1"
+  endpoint: "/api/documents/extract"
+  timeout: "180000"  # 3 minutes per document
+  maxRetries: "2"
+  retryDelay: "5000"
+  oauth2:
+    tokenUrl: "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token"
+    grantType: "client_credentials"
+    timeout: "30000"  # 30 seconds for token request
+  aggregation:
+    enabled: "true"
+    storeResults: "true"
+    ttlMs: "3600000"  # 1 hour

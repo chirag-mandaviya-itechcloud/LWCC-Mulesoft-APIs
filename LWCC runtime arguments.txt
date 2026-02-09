@@ -1,0 +1,4 @@
+lwcc-sf-doc-split-sys-api
+----------------------------
+-M-XX:-UseBiasedLocking -M-Dfile.encoding=UTF-8 -M-XX:+UseG1GC -M-XX:+UseStringDeduplication -M-Dmule.deployment.forceParseConfigXmls=true -Dmule.env=dev02 
+-Dsecure.key=Mul3@LwCc*K3y#24

@@ -598,6 +598,40 @@ sizeOf(valuesOf(payload) map $.payload filter ($ != null))]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
 
+			<!-- Merge IDP results after all uploads complete -->
+			<choice doc:name="Check IDP Merge Enabled"
+				doc:id="check-idp-merge-enabled">
+				<when expression="#[p('idp.enabled') == 'true' and p('idp.aggregation.enabled') == 'true']">
+
+					<logger doc:name="Log IDP Merge Wait"
+						doc:id="log-idp-merge-wait"
+						level="INFO"
+						message="#['IDP_MERGE_WAIT | Waiting for all IDP extractions to complete']" />
+
+					<!-- Wait and retry until all parts are processed -->
+					<until-successful maxRetries="10" millisBetweenRetries="2000"
+						doc:name="Retry Until All Parts Processed"
+						doc:id="retry-until-all-processed">
+						<flow-ref doc:name="Merge IDP Results"
+							doc:id="merge-idp-results-ref"
+							name="merge-idp-results-subflow" />
+					</until-successful>
+
+				</when>
+				<otherwise>
+					<logger doc:name="Log IDP Disabled"
+						doc:id="log-idp-disabled"
+						level="DEBUG"
+						message="#['IDP_DISABLED | IDP integration is disabled or aggregation is off']" />
+
+					<!-- Set mergedIdpData to null when IDP is disabled -->
+					<set-variable doc:name="Set No IDP Data"
+						doc:id="set-no-idp-data"
+						variableName="mergedIdpData"
+						value="#[null]" />
+				</otherwise>
+			</choice>
+
 			<!-- Check for partial or total failures -->
 			<!-- [STUDIO:"Check Upload Results"]<choice doc:name="Check Upload Results">
 				<when expression="#[vars.successfulParts == 0&#93;">
@@ -647,7 +681,9 @@ output application/json
 		fileName: part.fileName as String
 	}),
 	correlationId: vars.correlationId as String,
-	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"},
+	// Include IDP extracted data if available
+	(idpExtractedData: vars.mergedIdpData) if (vars.mergedIdpData != null)
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
@@ -1341,6 +1377,463 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 	contentDocumentLinkId: vars.newContentDocumentLinkId
 }]]]></json-logger:content>
 		</json-logger:logger>
+
+		<!-- Call IDP after successful upload -->
+		<choice doc:name="Check IDP Enabled"
+			doc:id="check-idp-enabled">
+			<when expression="#[p('idp.enabled') == 'true']">
+
+				<!-- Call IDP Extraction -->
+				<flow-ref doc:name="Call IDP Extraction"
+					doc:id="call-idp-extraction"
+					name="call-idp-extraction-subflow" />
+
+				<!-- Store IDP Result in Object Store -->
+				<flow-ref doc:name="Store IDP Result"
+					doc:id="store-idp-result"
+					name="store-idp-result-subflow" />
+
+			</when>
+		</choice>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- CALL IDP FOR DOCUMENT EXTRACTION SUBFLOW       -->
+	<!-- ============================================== -->
+	<sub-flow name="call-idp-extraction-subflow"
+		doc:id="call-idp-extraction-subflow"
+		doc:name="call-idp-extraction-subflow">
+
+		<json-logger:logger
+			doc:name="Log IDP Call Start"
+			doc:id="log-idp-start"
+			config-ref="JSON_Logger_Config"
+			message="Calling IDP for document extraction"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "call-idp-extraction-subflow",
+	step: "IDP_CALL_START",
+	partNumber: vars.partNumber,
+	contentVersionId: vars.newContentVersionId,
+	contentDocumentId: vars.newContentDocumentId
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Step 1: Obtain OAuth2 Access Token -->
+		<logger doc:name="Log OAuth2 Token Request"
+			doc:id="log-oauth2-token-request"
+			level="DEBUG"
+			message="#['IDP_OAUTH2 | Requesting access token from Anypoint Platform']" />
+
+		<!-- Build OAuth2 Token Request -->
+		<ee:transform doc:name="Build OAuth2 Token Request"
+			doc:id="build-oauth2-token-request">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	grant_type: p('idp.oauth2.grantType'),
+	client_id: p('secure::idp.clientId'),
+	client_secret: p('secure::idp.clientSecret')
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<!-- Call OAuth2 Token Endpoint -->
+		<try doc:name="Try OAuth2 Token Request" doc:id="try-oauth2-token">
+			<http:request doc:name="POST OAuth2 Token"
+				doc:id="post-oauth2-token"
+				config-ref="IDP_OAuth2_HTTP_Config"
+				path="/accounts/api/v2/oauth2/token"
+				method="POST"
+				target="oauth2Response">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Type": "application/json"
+}]]]></http:headers>
+			</http:request>
+
+			<!-- Extract Access Token -->
+			<ee:transform doc:name="Extract Access Token"
+				doc:id="extract-access-token">
+				<ee:variables>
+					<ee:set-variable variableName="idpAccessToken"><![CDATA[%dw 2.0
+output application/java
+---
+vars.oauth2Response.access_token]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+
+			<logger doc:name="Log OAuth2 Token Success"
+				doc:id="log-oauth2-token-success"
+				level="DEBUG"
+				message="#['IDP_OAUTH2_SUCCESS | Access token obtained successfully']" />
+
+			<error-handler>
+				<on-error-propagate doc:name="On OAuth2 Error"
+					doc:id="on-oauth2-error"
+					type="HTTP:TIMEOUT,HTTP:CONNECTIVITY,HTTP:UNAUTHORIZED">
+
+					<logger doc:name="Log OAuth2 Error"
+						doc:id="log-oauth2-error"
+						level="ERROR"
+						message="#['IDP_OAUTH2_ERROR | Failed to obtain access token | error=' ++ error.description]" />
+
+					<raise-error doc:name="Raise IDP_OAUTH2_FAILED"
+						doc:id="raise-oauth2-error"
+						type="APP:IDP_OAUTH2_FAILED"
+						description="#['Failed to obtain OAuth2 token for IDP: ' ++ error.description]" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+
+		<!-- Step 2: Prepare IDP Request Payload -->
+		<ee:transform doc:name="Build IDP Request"
+			doc:id="build-idp-request">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	documentId: vars.newContentDocumentId,
+	documentVersionId: vars.newContentVersionId,
+	claimId: vars.claimId,
+	partNumber: vars.partNumber,
+	pageStart: vars.currentPart.pageStart,
+	pageEnd: vars.currentPart.pageEnd,
+	extractionType: "FULL",
+	documentType: "PDF",
+	metadata: {
+		fileName: vars.partFileName,
+		sizeBytes: vars.currentPart.sizeBytes,
+		correlationId: vars.correlationId,
+		originalDocumentId: vars.contentDocumentId
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<try doc:name="Try IDP Call" doc:id="try-idp-call">
+			<!-- Call IDP Service -->
+			<http:request doc:name="POST IDP Extract"
+				doc:id="post-idp-extract"
+				config-ref="IDP_HTTP_Config"
+				path="${idp.endpoint}"
+				method="POST"
+				target="idpResponse">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Type": "application/json",
+	"Authorization": "Bearer " ++ vars.idpAccessToken,
+	"X-Correlation-Id": vars.correlationId,
+	"X-Part-Number": vars.partNumber as String
+}]]]></http:headers>
+			</http:request>
+
+			<!-- Parse IDP Response -->
+			<ee:transform doc:name="Parse IDP Response"
+				doc:id="parse-idp-response">
+				<ee:variables>
+					<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.partNumber,
+	contentDocumentId: vars.newContentDocumentId,
+	contentVersionId: vars.newContentVersionId,
+	extractedData: vars.idpResponse,
+	timestamp: now(),
+	status: "SUCCESS"
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+
+			<error-handler>
+				<on-error-propagate doc:name="On IDP Error"
+					doc:id="on-idp-error"
+					type="HTTP:TIMEOUT,HTTP:CONNECTIVITY">
+
+					<json-logger:logger
+						doc:name="Log IDP Error"
+						doc:id="log-idp-error"
+						config-ref="JSON_Logger_Config"
+						message="IDP extraction failed"
+						priority="ERROR">
+						<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	partNumber: vars.partNumber,
+	error: error.description,
+	errorType: error.errorType.identifier
+}]]]></json-logger:content>
+					</json-logger:logger>
+
+					<!-- Store error result -->
+					<ee:transform doc:name="Build Error Response"
+						doc:id="build-error-response">
+						<ee:variables>
+							<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.partNumber,
+	contentDocumentId: vars.newContentDocumentId,
+	contentVersionId: vars.newContentVersionId,
+	extractedData: null,
+	error: error.description,
+	timestamp: now(),
+	status: "FAILED"
+}]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+
+					<raise-error doc:name="Raise IDP_EXTRACTION_FAILED"
+						doc:id="raise-idp-error"
+						type="APP:IDP_EXTRACTION_FAILED"
+						description="#['IDP extraction failed for part ' ++ vars.partNumber ++ ': ' ++ error.description]" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+
+		<json-logger:logger
+			doc:name="Log IDP Call Complete"
+			doc:id="log-idp-complete"
+			config-ref="JSON_Logger_Config"
+			message="IDP extraction completed"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "call-idp-extraction-subflow",
+	step: "IDP_CALL_COMPLETE",
+	partNumber: vars.partNumber,
+	status: vars.idpExtractedData.status
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- STORE IDP RESULT IN OBJECT STORE SUBFLOW       -->
+	<!-- ============================================== -->
+	<sub-flow name="store-idp-result-subflow"
+		doc:id="store-idp-result-subflow"
+		doc:name="store-idp-result-subflow">
+
+		<!-- Create unique key for aggregation -->
+		<set-variable doc:name="Set Aggregation Key"
+			doc:id="set-aggregation-key"
+			variableName="aggregationKey"
+			value="#[vars.claimId ++ '|' ++ vars.contentDocumentId ++ '|' ++ vars.correlationId]" />
+
+		<logger doc:name="Log Store IDP Result"
+			doc:id="log-store-idp-result"
+			level="INFO"
+			message="#['STORE_IDP_RESULT | key=' ++ vars.aggregationKey ++ ' | part=' ++ vars.partNumber]" />
+
+		<!-- Retrieve existing results (if any) -->
+		<try doc:name="Try Retrieve Existing" doc:id="try-retrieve-existing">
+			<os:retrieve doc:name="Retrieve Existing Results"
+				doc:id="retrieve-existing-results"
+				objectStore="IDP_Results_Object_Store"
+				key="#[vars.aggregationKey]"
+				target="existingResults">
+				<os:default-value><![CDATA[#[{}]]]></os:default-value>
+			</os:retrieve>
+
+			<error-handler>
+				<on-error-continue doc:name="On Not Found"
+					doc:id="on-not-found"
+					type="OS:KEY_NOT_FOUND">
+					<set-variable doc:name="Set Empty Results"
+						doc:id="set-empty-results"
+						variableName="existingResults"
+						value="#[{}]" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+		<!-- Merge new result with existing results -->
+		<ee:transform doc:name="Merge IDP Results"
+			doc:id="merge-idp-results">
+			<ee:variables>
+				<ee:set-variable variableName="aggregatedResults"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	claimId: vars.claimId,
+	sourceContentDocumentId: vars.contentDocumentId,
+	correlationId: vars.correlationId,
+	totalParts: vars.totalParts,
+	processedParts: (vars.existingResults.processedParts default 0) + 1,
+	results: (vars.existingResults.results default []) << vars.idpExtractedData,
+	lastUpdated: now()
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- Store aggregated results -->
+		<os:store doc:name="Store Aggregated Results"
+			doc:id="store-aggregated-results"
+			objectStore="IDP_Results_Object_Store"
+			key="#[vars.aggregationKey]">
+			<os:value><![CDATA[#[vars.aggregatedResults]]]></os:value>
+		</os:store>
+
+		<logger doc:name="Log Aggregation Progress"
+			doc:id="log-aggregation-progress"
+			level="INFO"
+			message="#['IDP_AGGREGATION | Processed ' ++ vars.aggregatedResults.processedParts ++ ' of ' ++ vars.totalParts ++ ' parts']" />
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- MERGE ALL IDP RESULTS SUBFLOW                  -->
+	<!-- ============================================== -->
+	<sub-flow name="merge-idp-results-subflow"
+		doc:id="merge-idp-results-subflow"
+		doc:name="merge-idp-results-subflow">
+
+		<logger doc:name="Log Merge Start"
+			doc:id="log-merge-start"
+			level="INFO"
+			message="#['MERGE_IDP_RESULTS | Starting merge for ' ++ vars.totalParts ++ ' parts']" />
+
+		<!-- Retrieve all aggregated results from Object Store -->
+		<os:retrieve doc:name="Retrieve All Results"
+			doc:id="retrieve-all-results"
+			objectStore="IDP_Results_Object_Store"
+			key="#[vars.aggregationKey]"
+			target="allIdpResults" />
+
+		<!-- Check if all parts are processed -->
+		<choice doc:name="Check All Parts Processed"
+			doc:id="check-all-parts-processed">
+			<when expression="#[vars.allIdpResults.processedParts == vars.allIdpResults.totalParts]">
+
+				<!-- Merge extracted data from all parts -->
+				<ee:transform doc:name="Merge All Extracted Data"
+					doc:id="merge-all-extracted-data">
+					<ee:variables>
+						<ee:set-variable variableName="mergedIdpData"><![CDATA[%dw 2.0
+output application/java
+
+// Helper function to merge text fields
+fun mergeText(results) =
+	(results map $.extractedData.text)
+		filter ($ != null)
+		joinBy "\n\n"
+
+// Helper function to merge structured data
+fun mergeStructuredData(results) =
+	(results map $.extractedData.structuredData)
+		filter ($ != null)
+		reduce ((item, accumulator = {}) -> accumulator ++ item)
+
+// Helper function to merge tables
+fun mergeTables(results) =
+	(results flatMap $.extractedData.tables)
+		filter ($ != null)
+
+// Helper function to merge entities
+fun mergeEntities(results) =
+	(results flatMap $.extractedData.entities)
+		filter ($ != null)
+		distinctBy $.id
+
+---
+{
+	claimId: vars.allIdpResults.claimId,
+	sourceContentDocumentId: vars.allIdpResults.sourceContentDocumentId,
+	correlationId: vars.allIdpResults.correlationId,
+	totalParts: vars.allIdpResults.totalParts,
+	mergedAt: now(),
+
+	// Merged extracted data
+	extractedData: {
+		// Merge all text content in order
+		fullText: mergeText(vars.allIdpResults.results),
+
+		// Merge structured data (key-value pairs)
+		structuredData: mergeStructuredData(vars.allIdpResults.results),
+
+		// Merge tables from all parts
+		tables: mergeTables(vars.allIdpResults.results),
+
+		// Merge entities (deduplicated)
+		entities: mergeEntities(vars.allIdpResults.results),
+
+		// Keep individual part results for reference
+		partResults: vars.allIdpResults.results map {
+			partNumber: $.partNumber,
+			contentDocumentId: $.contentDocumentId,
+			status: $.status,
+			pageRange: ($.extractedData.pageStart default 0) ++ "-" ++ ($.extractedData.pageEnd default 0)
+		}
+	},
+
+	// Summary statistics
+	summary: {
+		totalPartsProcessed: vars.allIdpResults.processedParts,
+		successfulParts: sizeOf(vars.allIdpResults.results filter $.status == "SUCCESS"),
+		failedParts: sizeOf(vars.allIdpResults.results filter $.status == "FAILED"),
+		totalTextLength: sizeOf(mergeText(vars.allIdpResults.results)),
+		totalEntities: sizeOf(mergeEntities(vars.allIdpResults.results)),
+		totalTables: sizeOf(mergeTables(vars.allIdpResults.results))
+	}
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+
+				<json-logger:logger
+					doc:name="Log Merge Complete"
+					doc:id="log-merge-complete"
+					config-ref="JSON_Logger_Config"
+					message="IDP results merged successfully"
+					tracePoint="FLOW"
+					priority="INFO">
+					<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	claimId: vars.claimId,
+	totalParts: vars.mergedIdpData.totalParts,
+	summary: vars.mergedIdpData.summary
+}]]]></json-logger:content>
+				</json-logger:logger>
+
+				<!-- Optional: Clean up Object Store after merge -->
+				<os:remove doc:name="Remove from Object Store"
+					doc:id="remove-from-store"
+					objectStore="IDP_Results_Object_Store"
+					key="#[vars.aggregationKey]" />
+
+			</when>
+			<otherwise>
+				<logger doc:name="Log Not All Parts Processed"
+					doc:id="log-not-all-parts"
+					level="WARN"
+					message="#['MERGE_INCOMPLETE | Processed ' ++ vars.allIdpResults.processedParts ++ ' of ' ++ vars.allIdpResults.totalParts ++ ' parts']" />
+
+				<set-variable doc:name="Set Partial Merge"
+					doc:id="set-partial-merge"
+					variableName="mergedIdpData"
+					value="#[null]" />
+			</otherwise>
+		</choice>
 
 	</sub-flow>
 

@@ -185,6 +185,55 @@
 	</http:request-config>
 
 	<!-- ============================================== -->
+	<!-- IDP OAuth2 TOKEN HTTP REQUEST CONFIGURATION    -->
+	<!-- For MuleSoft Anypoint OAuth2 Token Service    -->
+	<!-- ============================================== -->
+	<http:request-config name="IDP_OAuth2_HTTP_Config"
+		doc:name="IDP OAuth2 HTTP Config"
+		doc:id="idp-oauth2-http-config"
+		responseTimeout="${idp.oauth2.timeout}">
+		<http:request-connection
+			host="anypoint.mulesoft.com"
+			port="443"
+			protocol="HTTPS">
+			<reconnection>
+				<reconnect frequency="1000" count="2" />
+			</reconnection>
+		</http:request-connection>
+	</http:request-config>
+
+	<!-- ============================================== -->
+	<!-- IDP HTTP REQUEST CONFIGURATION                 -->
+	<!-- For MuleSoft IDP Document Extraction Service  -->
+	<!-- ============================================== -->
+	<http:request-config name="IDP_HTTP_Config"
+		doc:name="IDP HTTP Config"
+		doc:id="idp-http-config"
+		basePath="${idp.apiVersion}"
+		responseTimeout="${idp.timeout}">
+		<http:request-connection
+			host="${idp.baseUrl}"
+			port="443"
+			protocol="HTTPS">
+			<reconnection>
+				<reconnect frequency="${idp.retryDelay}" count="${idp.maxRetries}" />
+			</reconnection>
+		</http:request-connection>
+	</http:request-config>
+
+	<!-- ============================================== -->
+	<!-- IDP RESULTS OBJECT STORE                       -->
+	<!-- For Aggregating IDP Results Across Parts      -->
+	<!-- ============================================== -->
+	<os:object-store name="IDP_Results_Object_Store"
+		doc:name="IDP Results Object Store"
+		doc:id="idp-results-store"
+		persistent="true"
+		maxEntries="5000"
+		entryTtl="${idp.aggregation.ttlMs}"
+		entryTtlUnit="MILLISECONDS" />
+
+	<!-- ============================================== -->
 	<!-- JSON LOGGER CONFIGURATION                      -->
 	<!-- ============================================== -->
 	<json-logger:config

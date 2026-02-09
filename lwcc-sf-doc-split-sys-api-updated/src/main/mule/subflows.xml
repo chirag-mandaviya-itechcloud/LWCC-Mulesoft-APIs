@@ -1424,7 +1424,78 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 }]]]></json-logger:content>
 		</json-logger:logger>
 
-		<!-- Prepare IDP Request Payload -->
+		<!-- Step 1: Obtain OAuth2 Access Token -->
+		<logger doc:name="Log OAuth2 Token Request"
+			doc:id="log-oauth2-token-request"
+			level="DEBUG"
+			message="#['IDP_OAUTH2 | Requesting access token from Anypoint Platform']" />
+
+		<!-- Build OAuth2 Token Request -->
+		<ee:transform doc:name="Build OAuth2 Token Request"
+			doc:id="build-oauth2-token-request">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	grant_type: p('idp.oauth2.grantType'),
+	client_id: p('secure::idp.clientId'),
+	client_secret: p('secure::idp.clientSecret')
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<!-- Call OAuth2 Token Endpoint -->
+		<try doc:name="Try OAuth2 Token Request" doc:id="try-oauth2-token">
+			<http:request doc:name="POST OAuth2 Token"
+				doc:id="post-oauth2-token"
+				config-ref="IDP_OAuth2_HTTP_Config"
+				path="/accounts/api/v2/oauth2/token"
+				method="POST"
+				target="oauth2Response">
+				<http:body><![CDATA[#[payload]]]></http:body>
+				<http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Type": "application/json"
+}]]]></http:headers>
+			</http:request>
+
+			<!-- Extract Access Token -->
+			<ee:transform doc:name="Extract Access Token"
+				doc:id="extract-access-token">
+				<ee:variables>
+					<ee:set-variable variableName="idpAccessToken"><![CDATA[%dw 2.0
+output application/java
+---
+vars.oauth2Response.access_token]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+
+			<logger doc:name="Log OAuth2 Token Success"
+				doc:id="log-oauth2-token-success"
+				level="DEBUG"
+				message="#['IDP_OAUTH2_SUCCESS | Access token obtained successfully']" />
+
+			<error-handler>
+				<on-error-propagate doc:name="On OAuth2 Error"
+					doc:id="on-oauth2-error"
+					type="HTTP:TIMEOUT,HTTP:CONNECTIVITY,HTTP:UNAUTHORIZED">
+
+					<logger doc:name="Log OAuth2 Error"
+						doc:id="log-oauth2-error"
+						level="ERROR"
+						message="#['IDP_OAUTH2_ERROR | Failed to obtain access token | error=' ++ error.description]" />
+
+					<raise-error doc:name="Raise IDP_OAUTH2_FAILED"
+						doc:id="raise-oauth2-error"
+						type="APP:IDP_OAUTH2_FAILED"
+						description="#['Failed to obtain OAuth2 token for IDP: ' ++ error.description]" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+
+		<!-- Step 2: Prepare IDP Request Payload -->
 		<ee:transform doc:name="Build IDP Request"
 			doc:id="build-idp-request">
 			<ee:message>
@@ -1463,8 +1534,7 @@ output application/json
 ---
 {
 	"Content-Type": "application/json",
-	"X-API-Key": p('secure::idp.apiKey'),
-	"X-Client-Id": p('secure::idp.clientId'),
+	"Authorization": "Bearer " ++ vars.idpAccessToken,
 	"X-Correlation-Id": vars.correlationId,
 	"X-Part-Number": vars.partNumber as String
 }]]]></http:headers>

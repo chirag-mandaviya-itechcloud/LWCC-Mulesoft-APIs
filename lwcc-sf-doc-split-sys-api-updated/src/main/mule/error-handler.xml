@@ -244,7 +244,7 @@ output application/json
 		<!-- ============================================== -->
 		<!-- HTTP 502 - External Service Errors             -->
 		<!-- ============================================== -->
-		<on-error-propagate type="APP:DOWNLOAD_FAILED, APP:SALESFORCE_ERROR, APP:IDP_EXTRACTION_FAILED"
+		<on-error-propagate type="APP:DOWNLOAD_FAILED, APP:SALESFORCE_ERROR, APP:IDP_EXTRACTION_FAILED, APP:IDP_OAUTH2_FAILED"
 			doc:name="External Service Error"
 			doc:id="error-external-service">
 			<ee:transform doc:name="build error msg">
