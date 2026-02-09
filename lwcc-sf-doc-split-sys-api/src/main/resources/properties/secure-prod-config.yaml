@@ -9,3 +9,9 @@
 sfdc:
   password: "![REPLACE_WITH_ENCRYPTED_VALUE]"
   consumerkey: "![REPLACE_WITH_ENCRYPTED_VALUE]"
+
+# IDP Secure Credentials (replace with your encrypted values)
+# These are used for OAuth2 authentication with Anypoint Platform
+idp:
+  clientId: "![REPLACE_WITH_ENCRYPTED_VALUE]"
+  clientSecret: "![REPLACE_WITH_ENCRYPTED_VALUE]"
