@@ -4,7 +4,9 @@
 	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
 	xmlns:os="http://www.mulesoft.org/schema/mule/os"
 	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:sdc="http://www.mulesoft.org/schema/mule/sdc"
 	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:idp-medical-summarywith-schema-110="http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -13,7 +15,9 @@
 		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
 		http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+		http://www.mulesoft.org/schema/mule/sdc http://www.mulesoft.org/schema/mule/sdc/current/mule-sdc.xsd
 		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+		http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110 http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110/current/mule-idp-medical-summarywith-schema-110.xsd
 		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
 
 	<!-- ============================================== -->
@@ -1393,6 +1397,23 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 					doc:id="store-idp-result"
 					name="store-idp-result-subflow" />
 
+				<!-- Store IDP Results to Data Cloud DMOs (non-blocking) -->
+				<try doc:name="Try Store to Data Cloud"
+					doc:id="try-store-to-datacloud">
+					<flow-ref doc:name="Store IDP to Data Cloud"
+						doc:id="store-idp-to-datacloud"
+						name="store-idp-to-datacloud-subflow" />
+					<error-handler>
+						<on-error-continue doc:name="On Data Cloud Store Error"
+							doc:id="on-datacloud-store-error">
+							<logger doc:name="Log DC Store Error"
+								doc:id="log-dc-store-error-wrapper"
+								level="ERROR"
+								message="#['DC_STORE_FAILED | Data Cloud storage failed for part ' ++ (vars.partNumber default '') ++ ': ' ++ error.description]" />
+						</on-error-continue>
+					</error-handler>
+				</try>
+
 			</when>
 		</choice>
 
@@ -1400,6 +1421,8 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 
 	<!-- ============================================== -->
 	<!-- CALL IDP FOR DOCUMENT EXTRACTION SUBFLOW       -->
+	<!-- Uses IDP Connector (POST doc + GET results)    -->
+	<!-- OAuth2 is handled automatically by connector   -->
 	<!-- ============================================== -->
 	<sub-flow name="call-idp-extraction-subflow"
 		doc:id="call-idp-extraction-subflow"
@@ -1424,150 +1447,61 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 }]]]></json-logger:content>
 		</json-logger:logger>
 
-		<!-- Step 1: Obtain OAuth2 Access Token -->
-		<logger doc:name="Log OAuth2 Token Request"
-			doc:id="log-oauth2-token-request"
-			level="DEBUG"
-			message="#['IDP_OAUTH2 | Requesting access token from Anypoint Platform']" />
-
-		<!-- Build OAuth2 Token Request -->
-		<ee:transform doc:name="Build OAuth2 Token Request"
-			doc:id="build-oauth2-token-request">
+		<!-- Step 1: Build multipart/form-data payload for IDP POST -->
+		<ee:transform doc:name="Build IDP Multipart Request"
+			doc:id="build-idp-multipart-request">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
-output application/json
+output multipart/form-data
 ---
 {
-	grant_type: p('idp.oauth2.grantType'),
-	client_id: p('secure::idp.clientId'),
-	client_secret: p('secure::idp.clientSecret')
-}]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-
-		<!-- Call OAuth2 Token Endpoint -->
-		<try doc:name="Try OAuth2 Token Request" doc:id="try-oauth2-token">
-			<http:request doc:name="POST OAuth2 Token"
-				doc:id="post-oauth2-token"
-				config-ref="IDP_OAuth2_HTTP_Config"
-				path="/accounts/api/v2/oauth2/token"
-				method="POST"
-				target="oauth2Response">
-				<http:body><![CDATA[#[payload]]]></http:body>
-				<http:headers><![CDATA[#[output application/java
----
-{
-	"Content-Type": "application/json"
-}]]]></http:headers>
-			</http:request>
-
-			<!-- Extract Access Token -->
-			<ee:transform doc:name="Extract Access Token"
-				doc:id="extract-access-token">
-				<ee:variables>
-					<ee:set-variable variableName="idpAccessToken"><![CDATA[%dw 2.0
-output application/java
----
-vars.oauth2Response.access_token]]></ee:set-variable>
-				</ee:variables>
-			</ee:transform>
-
-			<logger doc:name="Log OAuth2 Token Success"
-				doc:id="log-oauth2-token-success"
-				level="DEBUG"
-				message="#['IDP_OAUTH2_SUCCESS | Access token obtained successfully']" />
-
-			<error-handler>
-				<on-error-propagate doc:name="On OAuth2 Error"
-					doc:id="on-oauth2-error"
-					type="HTTP:TIMEOUT,HTTP:CONNECTIVITY,HTTP:UNAUTHORIZED">
-
-					<logger doc:name="Log OAuth2 Error"
-						doc:id="log-oauth2-error"
-						level="ERROR"
-						message="#['IDP_OAUTH2_ERROR | Failed to obtain access token | error=' ++ error.description]" />
-
-					<raise-error doc:name="Raise IDP_OAUTH2_FAILED"
-						doc:id="raise-oauth2-error"
-						type="APP:IDP_OAUTH2_FAILED"
-						description="#['Failed to obtain OAuth2 token for IDP: ' ++ error.description]" />
-				</on-error-propagate>
-			</error-handler>
-		</try>
-
-		<!-- Step 2: Prepare IDP Request Payload -->
-		<ee:transform doc:name="Build IDP Request"
-			doc:id="build-idp-request">
-			<ee:message>
-				<ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-	documentId: vars.newContentDocumentId,
-	documentVersionId: vars.newContentVersionId,
-	claimId: vars.claimId,
-	partNumber: vars.partNumber,
-	pageStart: vars.currentPart.pageStart,
-	pageEnd: vars.currentPart.pageEnd,
-	extractionType: "FULL",
-	documentType: "PDF",
-	metadata: {
-		fileName: vars.partFileName,
-		sizeBytes: vars.currentPart.sizeBytes,
-		correlationId: vars.correlationId,
-		originalDocumentId: vars.contentDocumentId
+	parts : {
+		file : {
+			headers : {
+				"Content-Disposition" : {
+					"name": "file",
+					"filename": vars.partFileName ++ ".pdf",
+					"subtype": "form-data"
+				},
+				"Content-Type" : "application/pdf"
+			},
+			content : vars.partContent
+		}
 	}
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
 
-		<try doc:name="Try IDP Call" doc:id="try-idp-call">
-			<!-- Call IDP Service -->
-			<http:request doc:name="POST IDP Extract"
-				doc:id="post-idp-extract"
-				config-ref="IDP_HTTP_Config"
-				path="${idp.endpoint}"
-				method="POST"
-				target="idpResponse">
-				<http:body><![CDATA[#[payload]]]></http:body>
-				<http:headers><![CDATA[#[output application/java
----
-{
-	"Content-Type": "application/json",
-	"Authorization": "Bearer " ++ vars.idpAccessToken,
-	"X-Correlation-Id": vars.correlationId,
-	"X-Part-Number": vars.partNumber as String
-}]]]></http:headers>
-			</http:request>
+		<!-- Step 2: POST document to IDP using connector -->
+		<try doc:name="Try IDP POST" doc:id="try-idp-post">
 
-			<!-- Parse IDP Response -->
-			<ee:transform doc:name="Parse IDP Response"
-				doc:id="parse-idp-response">
-				<ee:variables>
-					<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
-output application/java
----
-{
-	partNumber: vars.partNumber,
-	contentDocumentId: vars.newContentDocumentId,
-	contentVersionId: vars.newContentVersionId,
-	extractedData: vars.idpResponse,
-	timestamp: now(),
-	status: "SUCCESS"
-}]]></ee:set-variable>
-				</ee:variables>
-			</ee:transform>
+			<idp-medical-summarywith-schema-110:postdocumentactionexecution
+				doc:name="POST Document to IDP"
+				doc:id="post-idp-document"
+				config-ref="IDP_Medical_Summary_Config"
+				target="idpPostResponse" />
+
+			<logger doc:name="Log IDP POST Response"
+				doc:id="log-idp-post-response"
+				level="INFO"
+				message="#['IDP_POST_SUCCESS | executionId=' ++ (vars.idpPostResponse.id default 'null') ++ ' | documentName=' ++ (vars.idpPostResponse.documentName default 'null')]" />
+
+			<!-- Extract execution ID for polling -->
+			<set-variable doc:name="Set Execution ID"
+				doc:id="set-execution-id"
+				variableName="idpExecutionId"
+				value="#[vars.idpPostResponse.id]" />
 
 			<error-handler>
-				<on-error-propagate doc:name="On IDP Error"
-					doc:id="on-idp-error"
-					type="HTTP:TIMEOUT,HTTP:CONNECTIVITY">
+				<on-error-propagate doc:name="On IDP POST Error"
+					doc:id="on-idp-post-error"
+					type="IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:TIMEOUT,IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:CONNECTIVITY,IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:BAD_REQUEST,IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:UNAUTHORIZED,IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:INTERNAL_SERVER_ERROR">
 
 					<json-logger:logger
-						doc:name="Log IDP Error"
-						doc:id="log-idp-error"
+						doc:name="Log IDP POST Error"
+						doc:id="log-idp-post-error"
 						config-ref="JSON_Logger_Config"
-						message="IDP extraction failed"
+						message="IDP document submission failed"
 						priority="ERROR">
 						<json-logger:content><![CDATA[#[output application/json
 ---
@@ -1579,9 +1513,8 @@ output application/java
 }]]]></json-logger:content>
 					</json-logger:logger>
 
-					<!-- Store error result -->
 					<ee:transform doc:name="Build Error Response"
-						doc:id="build-error-response">
+						doc:id="build-post-error-response">
 						<ee:variables>
 							<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
 output application/java
@@ -1599,12 +1532,110 @@ output application/java
 					</ee:transform>
 
 					<raise-error doc:name="Raise IDP_EXTRACTION_FAILED"
-						doc:id="raise-idp-error"
+						doc:id="raise-idp-post-error"
 						type="APP:IDP_EXTRACTION_FAILED"
-						description="#['IDP extraction failed for part ' ++ vars.partNumber ++ ': ' ++ error.description]" />
+						description="#['IDP document submission failed for part ' ++ (vars.partNumber default '') ++ ': ' ++ error.description]" />
 				</on-error-propagate>
 			</error-handler>
 		</try>
+
+		<!-- Step 3: Poll for IDP results using GET execution -->
+		<logger doc:name="Log IDP Polling Start"
+			doc:id="log-idp-polling-start"
+			level="INFO"
+			message="#['IDP_POLL_START | executionId=' ++ vars.idpExecutionId ++ ' | Polling for results...']" />
+
+		<set-variable doc:name="Init IDP Status"
+			doc:id="init-idp-status"
+			variableName="idpStatus"
+			value="IN_PROGRESS" />
+
+		<!-- Poll until status is no longer IN_PROGRESS -->
+		<until-successful maxRetries="${idp.maxRetries}"
+			millisBetweenRetries="${idp.retryDelay}"
+			doc:name="Poll IDP Results"
+			doc:id="poll-idp-results">
+
+			<idp-medical-summarywith-schema-110:getdocumentactionexecution
+				doc:name="GET IDP Execution Result"
+				doc:id="get-idp-result"
+				config-ref="IDP_Medical_Summary_Config"
+				execution-id="#[vars.idpExecutionId]"
+				value-only="true"
+				target="idpGetResponse" />
+
+			<set-variable doc:name="Set IDP Status"
+				doc:id="set-idp-poll-status"
+				variableName="idpStatus"
+				value="#[vars.idpGetResponse.status]" />
+
+			<logger doc:name="Log IDP Poll Status"
+				doc:id="log-idp-poll-status"
+				level="INFO"
+				message="#['IDP_POLL | executionId=' ++ vars.idpExecutionId ++ ' | status=' ++ vars.idpStatus]" />
+
+			<!-- Force retry if still IN_PROGRESS -->
+			<choice doc:name="Check IDP Status"
+				doc:id="check-idp-poll-status">
+				<when expression="#[vars.idpStatus == 'IN_PROGRESS']">
+					<raise-error doc:name="Retry - Still Processing"
+						doc:id="raise-retry-in-progress"
+						type="APP:IDP_EXTRACTION_FAILED"
+						description="IDP execution still in progress, retrying..." />
+				</when>
+			</choice>
+
+		</until-successful>
+
+		<!-- Step 4: Process final IDP result based on status -->
+		<choice doc:name="Check Final IDP Status"
+			doc:id="check-final-idp-status">
+			<when expression="#[vars.idpStatus == 'SUCCEEDED']">
+				<ee:transform doc:name="Build Success Response"
+					doc:id="build-idp-success-response">
+					<ee:variables>
+						<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.partNumber,
+	contentDocumentId: vars.newContentDocumentId,
+	contentVersionId: vars.newContentVersionId,
+	executionId: vars.idpExecutionId,
+	extractedData: vars.idpGetResponse,
+	timestamp: now(),
+	status: "SUCCESS"
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<!-- FAILED or MANUAL_VALIDATION_REQUIRED -->
+				<ee:transform doc:name="Build Non-Success Response"
+					doc:id="build-idp-nonsuccess-response">
+					<ee:variables>
+						<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.partNumber,
+	contentDocumentId: vars.newContentDocumentId,
+	contentVersionId: vars.newContentVersionId,
+	executionId: vars.idpExecutionId,
+	extractedData: vars.idpGetResponse,
+	error: "IDP execution finished with status: " ++ (vars.idpStatus default "UNKNOWN"),
+	timestamp: now(),
+	status: vars.idpStatus default "FAILED"
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+
+				<logger doc:name="Log IDP Non-Success"
+					doc:id="log-idp-non-success"
+					level="WARN"
+					message="#['IDP_NON_SUCCESS | executionId=' ++ vars.idpExecutionId ++ ' | status=' ++ vars.idpStatus]" />
+			</otherwise>
+		</choice>
 
 		<json-logger:logger
 			doc:name="Log IDP Call Complete"
@@ -1620,6 +1651,7 @@ output application/java
 	subFlowName: "call-idp-extraction-subflow",
 	step: "IDP_CALL_COMPLETE",
 	partNumber: vars.partNumber,
+	executionId: vars.idpExecutionId,
 	status: vars.idpExtractedData.status
 }]]]></json-logger:content>
 		</json-logger:logger>
@@ -1642,7 +1674,7 @@ output application/java
 		<logger doc:name="Log Store IDP Result"
 			doc:id="log-store-idp-result"
 			level="INFO"
-			message="#['STORE_IDP_RESULT | key=' ++ vars.aggregationKey ++ ' | part=' ++ vars.partNumber]" />
+			message="#['STORE_IDP_RESULT | key=' ++ vars.aggregationKey ++ ' | part=' ++ (vars.partNumber default '')]" />
 
 		<!-- Retrieve existing results (if any) -->
 		<try doc:name="Try Retrieve Existing" doc:id="try-retrieve-existing">
@@ -1696,7 +1728,7 @@ output application/java
 		<logger doc:name="Log Aggregation Progress"
 			doc:id="log-aggregation-progress"
 			level="INFO"
-			message="#['IDP_AGGREGATION | Processed ' ++ vars.aggregatedResults.processedParts ++ ' of ' ++ vars.totalParts ++ ' parts']" />
+			message="#['IDP_AGGREGATION | Processed ' ++ (vars.aggregatedResults.processedParts default 0) ++ ' of ' ++ (vars.totalParts default 0) ++ ' parts']" />
 
 	</sub-flow>
 
@@ -1710,7 +1742,7 @@ output application/java
 		<logger doc:name="Log Merge Start"
 			doc:id="log-merge-start"
 			level="INFO"
-			message="#['MERGE_IDP_RESULTS | Starting merge for ' ++ vars.totalParts ++ ' parts']" />
+			message="#['MERGE_IDP_RESULTS | Starting merge for ' ++ (vars.totalParts default 0) ++ ' parts']" />
 
 		<!-- Retrieve all aggregated results from Object Store -->
 		<os:retrieve doc:name="Retrieve All Results"
@@ -1826,7 +1858,7 @@ fun mergeEntities(results) =
 				<logger doc:name="Log Not All Parts Processed"
 					doc:id="log-not-all-parts"
 					level="WARN"
-					message="#['MERGE_INCOMPLETE | Processed ' ++ vars.allIdpResults.processedParts ++ ' of ' ++ vars.allIdpResults.totalParts ++ ' parts']" />
+					message="#['MERGE_INCOMPLETE | Processed ' ++ (vars.allIdpResults.processedParts default 0) ++ ' of ' ++ (vars.allIdpResults.totalParts default 0) ++ ' parts']" />
 
 				<set-variable doc:name="Set Partial Merge"
 					doc:id="set-partial-merge"
@@ -1834,6 +1866,258 @@ fun mergeEntities(results) =
 					value="#[null]" />
 			</otherwise>
 		</choice>
+
+	</sub-flow>
+
+	<!-- ============================================== -->
+	<!-- STORE IDP RESULTS TO DATA CLOUD DMOs SUBFLOW   -->
+	<!-- Creates records per part in Data Cloud         -->
+	<!-- IDP_Document_Processing__dlm (1 per part)      -->
+	<!-- IDP_Extracted_Field__dlm (1 per field per part) -->
+	<!-- ============================================== -->
+	<sub-flow name="store-idp-to-datacloud-subflow"
+		doc:id="store-idp-to-datacloud-subflow"
+		doc:name="store-idp-to-datacloud-subflow">
+
+		<json-logger:logger
+			doc:name="Log Data Cloud Store Start"
+			doc:id="log-dc-store-start"
+			config-ref="JSON_Logger_Config"
+			message="Starting Data Cloud DMO storage"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "store-idp-to-datacloud-subflow",
+	step: "DC_STORE_START",
+	partNumber: vars.partNumber,
+	idpStatus: vars.idpExtractedData.status
+}]]]></json-logger:content>
+		</json-logger:logger>
+
+		<!-- Step 1a: Prepare base DMO data from IDP extraction result -->
+		<ee:transform doc:name="Prepare Base DMO Data"
+			doc:id="prepare-dc-base-data">
+			<ee:variables>
+				<ee:set-variable variableName="dcDocumentId"><![CDATA[%dw 2.0
+output application/java
+---
+vars.correlationId ++ "_" ++ (vars.partNumber as String default "0")]]></ee:set-variable>
+
+				<ee:set-variable variableName="dcExtractedFields"><![CDATA[%dw 2.0
+output application/java
+---
+if (vars.idpExtractedData.extractedData.structuredData != null)
+	entriesOf(vars.idpExtractedData.extractedData.structuredData) map ((entry, idx) -> {
+		key: entry.key,
+		value: entry.value default "",
+		confidence: entry.attr.confidence default 0.80,
+		pageNumber: entry.attr.pageNumber default 0
+	})
+else
+	[]]]></ee:set-variable>
+
+				<ee:set-variable variableName="dcDocumentType"><![CDATA[%dw 2.0
+output application/java
+---
+vars.idpExtractedData.extractedData.structuredData.documentType
+	default vars.idpExtractedData.extractedData.structuredData.document_type
+	default "Medical Summary"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- Step 1b: Compute derived values (depends on dcExtractedFields) -->
+		<ee:transform doc:name="Compute Confidence and Risk"
+			doc:id="prepare-dc-derived-data">
+			<ee:variables>
+				<ee:set-variable variableName="dcAvgConfidence"><![CDATA[%dw 2.0
+output application/java
+---
+if (sizeOf(vars.dcExtractedFields default []) > 0)
+	avg(vars.dcExtractedFields map $.confidence)
+else
+	0.80]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- Step 1c: Compute risk level (depends on dcAvgConfidence) -->
+		<ee:transform doc:name="Compute Risk Level"
+			doc:id="prepare-dc-risk-level">
+			<ee:variables>
+				<ee:set-variable variableName="dcRiskLevel"><![CDATA[%dw 2.0
+output application/java
+---
+if (vars.idpExtractedData.status != "SUCCESS") "High"
+else if ((vars.dcAvgConfidence as Number default 0) >= 0.85) "Low"
+else if ((vars.dcAvgConfidence as Number default 0) >= 0.60) "Medium"
+else "High"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+
+		<!-- Step 2: Insert IDP_Document_Processing__dlm via Streaming API -->
+		<try doc:name="Try Insert Document Processing DMO"
+			doc:id="try-insert-doc-processing-dmo">
+
+			<!-- Step 2a: Build JSON payload for Document Processing -->
+			<ee:transform doc:name="Build Doc Processing JSON"
+				doc:id="build-doc-processing-json">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	data: [{
+		Document_Id__c: vars.dcDocumentId,
+		KQ_Document_Id__c: vars.dcDocumentId,
+		Correlation_Id__c: vars.correlationId,
+		Document_Type__c: vars.dcDocumentType,
+		File_Name__c: (vars.partFileName default "unknown") ++ ".pdf",
+		Total_Pages__c: vars.currentPart.pageCount as Number default 0,
+		Processing_Status__c: vars.idpExtractedData.status default "UNKNOWN",
+		Confidence_Score__c: vars.dcAvgConfidence as Number default 0,
+		AI_Summary__c: vars.idpExtractedData.extractedData.fullText
+			default vars.idpExtractedData.extractedData.text
+			default "",
+		Risk_Level__c: vars.dcRiskLevel,
+		Processed_At__c: now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"},
+		Account_Id__c: vars.accountId default ""
+	}]
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+
+			<!-- Step 2b: Insert via Streaming API -->
+			<sdc:insert-objects doc:name="Streaming Insert - Doc Processing"
+				doc:id="insert-objects-doc-processing"
+				config-ref="Salesforce_Data_Cloud_Config"
+				sourceNameUriParam="${idp.datacloud.sourceApiName}"
+				objectNameUriParam="IDP_Document_Processing__dlm"
+				target="dcDocInsertResult" />
+
+			<logger doc:name="Log Doc Processing Streaming Insert"
+				doc:id="log-doc-processing-dmo"
+				level="INFO"
+				message="#['DC_DOC_PROCESSING_INSERT | documentId=' ++ vars.dcDocumentId]" />
+
+			<error-handler>
+				<on-error-continue doc:name="On Doc Processing Insert Error"
+					doc:id="on-doc-processing-error">
+					<json-logger:logger
+						doc:name="Log Doc Processing Error"
+						doc:id="log-doc-processing-error"
+						config-ref="JSON_Logger_Config"
+						message="Failed to insert IDP_Document_Processing__dlm via Streaming API"
+						priority="ERROR">
+						<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	partNumber: vars.partNumber,
+	documentId: vars.dcDocumentId,
+	error: error.description,
+	errorType: error.errorType.identifier
+}]]]></json-logger:content>
+					</json-logger:logger>
+				</on-error-continue>
+			</error-handler>
+		</try>
+
+		<!-- Step 3: Insert IDP_Extracted_Field__dlm records via Streaming API -->
+		<choice doc:name="Check Has Extracted Fields"
+			doc:id="check-has-extracted-fields">
+			<when expression="#[sizeOf(vars.dcExtractedFields default []) > 0]">
+
+				<try doc:name="Try Insert Extracted Fields DMO"
+					doc:id="try-insert-extracted-fields-dmo">
+
+					<!-- Step 3a: Build JSON payload for Extracted Fields -->
+					<ee:transform doc:name="Build Extracted Fields JSON"
+						doc:id="build-extracted-fields-json">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	data: vars.dcExtractedFields map ((field, idx) -> {
+		Field_Id__c: vars.dcDocumentId ++ "_" ++ (idx as String),
+		KQ_Field_Id__c: vars.dcDocumentId ++ "_" ++ (idx as String),
+		Document_Id__c: vars.dcDocumentId,
+		Field_Name__c: field.key as String default "",
+		Field_Value__c: field.value as String default "",
+		Confidence__c: field.confidence as Number default 0.80,
+		Page_Number__c: field.pageNumber as Number default 0,
+		Requires_Review__c: (field.confidence as Number default 0.80) < 0.70
+	})
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+
+					<!-- Step 3b: Insert via Streaming API -->
+					<sdc:insert-objects doc:name="Streaming Insert - Extracted Fields"
+						doc:id="insert-objects-extracted-fields"
+						config-ref="Salesforce_Data_Cloud_Config"
+						sourceNameUriParam="${idp.datacloud.sourceApiName}"
+						objectNameUriParam="IDP_Extracted_Field__dlm"
+						target="dcFieldsInsertResult" />
+
+					<logger doc:name="Log Extracted Fields Streaming Insert"
+						doc:id="log-extracted-fields-dmo"
+						level="INFO"
+						message="#['DC_EXTRACTED_FIELDS_INSERT | fieldCount=' ++ (sizeOf(vars.dcExtractedFields) as String) ++ ' | documentId=' ++ vars.dcDocumentId]" />
+
+					<error-handler>
+						<on-error-continue doc:name="On Extracted Fields Insert Error"
+							doc:id="on-extracted-fields-error">
+							<json-logger:logger
+								doc:name="Log Extracted Fields Error"
+								doc:id="log-extracted-fields-error"
+								config-ref="JSON_Logger_Config"
+								message="Failed to insert IDP_Extracted_Field__dlm via Streaming API"
+								priority="ERROR">
+								<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	partNumber: vars.partNumber,
+	documentId: vars.dcDocumentId,
+	fieldCount: sizeOf(vars.dcExtractedFields default []),
+	error: error.description,
+	errorType: error.errorType.identifier
+}]]]></json-logger:content>
+							</json-logger:logger>
+						</on-error-continue>
+					</error-handler>
+				</try>
+
+			</when>
+			<otherwise>
+				<logger doc:name="Log No Fields to Store"
+					doc:id="log-no-fields"
+					level="WARN"
+					message="#['DC_NO_FIELDS | No extracted fields to store for documentId=' ++ vars.dcDocumentId]" />
+			</otherwise>
+		</choice>
+
+		<json-logger:logger
+			doc:name="Log Data Cloud Store Complete"
+			doc:id="log-dc-store-complete"
+			config-ref="JSON_Logger_Config"
+			message="Data Cloud DMO storage completed"
+			tracePoint="FLOW"
+			priority="INFO">
+			<json-logger:content><![CDATA[#[output application/json
+---
+{
+	correlationId: vars.correlationId,
+	subFlowName: "store-idp-to-datacloud-subflow",
+	step: "DC_STORE_COMPLETE",
+	partNumber: vars.partNumber,
+	documentId: vars.dcDocumentId,
+	fieldCount: sizeOf(vars.dcExtractedFields default [])
+}]]]></json-logger:content>
+		</json-logger:logger>
 
 	</sub-flow>
 

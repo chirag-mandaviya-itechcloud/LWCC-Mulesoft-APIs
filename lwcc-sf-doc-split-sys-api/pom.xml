@@ -172,6 +172,25 @@
 			<classifier>mule-plugin</classifier>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.mule.modules</groupId>
+			<artifactId>mule-oauth-module</artifactId>
+			<version>1.1.24</version>
+			<classifier>mule-plugin</classifier>
+		</dependency>
+		<dependency>
+			<groupId>18404cbf-4922-41d8-a8bd-e903f45d1b04</groupId>
+			<artifactId>mule-plugin-idp-action-840ffb08-983b-43c5-a2f4-3c9a587cd2c4</artifactId>
+			<version>1.1.0</version>
+			<classifier>mule-plugin</classifier>
+		</dependency>
+		<!-- Salesforce Data Cloud Connector (Bulk Ingestion) -->
+		<dependency>
+			<groupId>com.mulesoft.connectors</groupId>
+			<artifactId>mule4-sdc-connector</artifactId>
+			<version>1.3.1</version>
+			<classifier>mule-plugin</classifier>
+		</dependency>
 	</dependencies>
 
 	<repositories>

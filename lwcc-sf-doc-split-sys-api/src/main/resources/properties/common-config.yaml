@@ -88,19 +88,20 @@ logging:
   level: "INFO"
 
 # IDP (Intelligent Document Processing) Configuration
+# Uses IDP Connector: postDocumentActionExecution + getDocumentActionExecution
+# OAuth2 client credentials are handled automatically by the connector
 idp:
   enabled: "true"
-  baseUrl: "https://your-idp-service.mulesoft.com"
-  apiVersion: "v1"
-  endpoint: "/api/documents/extract"
-  timeout: "180000"  # 3 minutes per document
-  maxRetries: "2"
-  retryDelay: "5000"
+  region: "us-east-1"
+  timeout: "180000"  # 3 minutes per document (connector response timeout)
+  maxRetries: "10"   # Max polling retries for GET execution result
+  retryDelay: "5000" # 5 seconds between polling retries
   oauth2:
     tokenUrl: "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token"
-    grantType: "client_credentials"
-    timeout: "30000"  # 30 seconds for token request
   aggregation:
     enabled: "true"
     storeResults: "true"
     ttlMs: "3600000"  # 1 hour
+  datacloud:
+    enabled: "true"
+    sourceApiName: "IDP"  # Data Cloud Ingestion API source name (must match source created in Data Cloud Setup)

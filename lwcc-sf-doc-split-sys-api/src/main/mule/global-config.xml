@@ -3,11 +3,13 @@
 <mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
 	xmlns:os="http://www.mulesoft.org/schema/mule/os"
 	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:sdc="http://www.mulesoft.org/schema/mule/sdc"
 	xmlns:file="http://www.mulesoft.org/schema/mule/file"
 	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
 	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:idp-medical-summarywith-schema-110="http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -15,11 +17,13 @@
 		http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
 		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
 		http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+		http://www.mulesoft.org/schema/mule/sdc http://www.mulesoft.org/schema/mule/sdc/current/mule-sdc.xsd
 		http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 		http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
 		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 		http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
 		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+		http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110 http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110/current/mule-idp-medical-summarywith-schema-110.xsd
 		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
 
 	<!-- ============================================== -->
@@ -185,41 +189,43 @@
 	</http:request-config>
 
 	<!-- ============================================== -->
-	<!-- IDP OAuth2 TOKEN HTTP REQUEST CONFIGURATION    -->
-	<!-- For MuleSoft Anypoint OAuth2 Token Service    -->
+	<!-- SALESFORCE DATA CLOUD CONNECTOR CONFIG         -->
+	<!-- For Streaming Insert into Data Cloud DMOs      -->
+	<!-- Uses OAuth JWT (same as Salesforce Config)     -->
 	<!-- ============================================== -->
-	<http:request-config name="IDP_OAuth2_HTTP_Config"
-		doc:name="IDP OAuth2 HTTP Config"
-		doc:id="idp-oauth2-http-config"
-		responseTimeout="${idp.oauth2.timeout}">
-		<http:request-connection
-			host="anypoint.mulesoft.com"
-			port="443"
-			protocol="HTTPS">
+	<sdc:sdc-config name="Salesforce_Data_Cloud_Config"
+		doc:name="Salesforce Data Cloud Config"
+		doc:id="sdc-config">
+		<sdc:oauth-jwt-connection
+			consumerKey="${secure::sfdc.consumerkey}"
+			keyStorePath="${mule.env}-jks.jks"
+			storePassword="${secure::sfdc.password}"
+			keyAlias="${sfdc.alias}"
+			subject="${sfdc.principal}"
+			audienceUrl="${sfdc.audience}">
 			<reconnection>
-				<reconnect frequency="1000" count="2" />
+				<reconnect frequency="2000" count="3" />
 			</reconnection>
-		</http:request-connection>
-	</http:request-config>
+		</sdc:oauth-jwt-connection>
+	</sdc:sdc-config>
 
 	<!-- ============================================== -->
-	<!-- IDP HTTP REQUEST CONFIGURATION                 -->
-	<!-- For MuleSoft IDP Document Extraction Service  -->
+	<!-- IDP CONNECTOR CONFIGURATION                    -->
+	<!-- MuleSoft IDP Medical Summary Document Action   -->
+	<!-- OAuth2 Client Credentials handled by connector -->
 	<!-- ============================================== -->
-	<http:request-config name="IDP_HTTP_Config"
-		doc:name="IDP HTTP Config"
-		doc:id="idp-http-config"
-		basePath="${idp.apiVersion}"
-		responseTimeout="${idp.timeout}">
-		<http:request-connection
-			host="${idp.baseUrl}"
-			port="443"
-			protocol="HTTPS">
-			<reconnection>
-				<reconnect frequency="${idp.retryDelay}" count="${idp.maxRetries}" />
-			</reconnection>
-		</http:request-connection>
-	</http:request-config>
+	<idp-medical-summarywith-schema-110:config
+		name="IDP_Medical_Summary_Config"
+		doc:name="IDP Medical Summary Config"
+		doc:id="idp-connector-config"
+		property_host="idp-rt.${idp.region}.anypoint.mulesoft.com"
+		property_port="443"
+		property_basePath="/"
+		property_protocol="HTTPS"
+		property_client-id="${secure::idp.clientId}"
+		property_client-secret="${secure::idp.clientSecret}"
+		property_access-token-url="${idp.oauth2.tokenUrl}"
+		property_responseTimeout="${idp.timeout}" />
 
 	<!-- ============================================== -->
 	<!-- IDP RESULTS OBJECT STORE                       -->
