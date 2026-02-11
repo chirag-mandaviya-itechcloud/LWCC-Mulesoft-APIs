@@ -1,0 +1,46 @@
+openapi: 3.0.3
+components:
+  schemas:
+    IDP_Document_Processing:
+      type: object
+      properties:
+        Document_Id:
+          type: string
+        Correlation_Id:
+          type: string
+        Document_Type:
+          type: string
+        File_Name:
+          type: string
+        Total_Pages:
+          type: number
+        Processing_Status:
+          type: string
+        Confidence_Score:
+          type: number
+        AI_Summary:
+          type: string
+        Risk_Level:
+          type: string
+        Processed_At:
+          type: string
+          format: date-time
+        Account_Id:
+          type: string
+    IDP_Extracted_Field:
+      type: object
+      properties:
+        Field_Id:
+          type: string
+        Document_Id:
+          type: string
+        Field_Name:
+          type: string
+        Field_Value:
+          type: string
+        Confidence:
+          type: number
+        Page_Number:
+          type: number
+        Requires_Review:
+          type: boolean

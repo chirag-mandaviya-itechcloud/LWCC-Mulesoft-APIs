@@ -21,11 +21,14 @@ api:
 sfdc:
   alias: "muledev022025"
   endpoint: "https://test.salesforce.com/services/oauth2/token"
+  tokenendpoint: "https://lwcc1--dev02.sandbox.my.salesforce.com/services/oauth2/token"
   audience: "https://test.salesforce.com"
   principal: "sfanypointapi@lwcc.com.dev02"
   instanceUrl: "https://lwcc1--dev02.sandbox.my.salesforce.com"
   instance:
     host: "lwcc1--dev02.sandbox.my.salesforce.com"
+  upload:
+    enabled: "false"
 
 # Object Store Configuration
 objectstore:

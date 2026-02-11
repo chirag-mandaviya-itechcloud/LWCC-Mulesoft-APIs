@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sdc="http://www.mulesoft.org/schema/mule/sdc" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sdc http://www.mulesoft.org/schema/mule/sdc/current/mule-sdc.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="ed08784c-0978-4c28-8814-7111652fdc81" basePath="/" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<sdc:sdc-config name="Salesforce_Data_Cloud_config" doc:name="Salesforce Data Cloud config" doc:id="2505aa6a-27b9-44de-ab60-224d26a10571" >
+		<sdc:oauth-client-credentials-connection consumerKey="3MVG9Nk1FpUrSQHc9jxlfqsSeIKqx_I9x7O6hZDJtBXTLttaCXSRxu4vemDmf0D7rvHc8TImCBRQ7xrCoriCz" consumerSecret="29D3D2BC1406A2DC598A9D34E5E76D29683D7CA6E0D631C43D789EED7B247EBC" tokenEndpoint="https://lwcc1.my.salesforce.com/services/oauth2/token" />
+	</sdc:sdc-config>
+	<flow name="demoFlow" doc:id="ca9956db-99d4-4fb0-ad74-47ab039e9196" >
+		<http:listener doc:name="Listener" doc:id="f1072ab6-8f6b-49f8-8745-2d2793d805e3" config-ref="HTTP_Listener_config" path="/demo"/>
+		<sdc:insert-objects doc:name="Streaming - Insert Objects" doc:id="d5498550-5662-47ab-951f-85b331edd1b7" config-ref="Salesforce_Data_Cloud_config" sourceNameUriParam="IDP"/>
+	</flow>
+</mule>

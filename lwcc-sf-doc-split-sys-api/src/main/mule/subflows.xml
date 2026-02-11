@@ -282,9 +282,9 @@ LIMIT 1]]></salesforce:salesforce-query>
 			name="download-pdf-subflow" />
 
 		<!-- Compress PDF before splitting (if enabled) -->
-		<flow-ref doc:name="Compress PDF"
+		<!-- [STUDIO:"Compress PDF"]<flow-ref doc:name="Compress PDF"
 			doc:id="ref-compress-pdf"
-			name="compress-pdf-subflow" />
+			name="compress-pdf-subflow" /> [STUDIO] -->
 
 		<!-- Analyze and split PDF using Java -->
 		<flow-ref doc:name="Split PDF"
@@ -1191,6 +1191,11 @@ SalesforceFileDownloader::deleteFile(vars.pdfTempFile)]]></ee:set-variable>
 }]]]></json-logger:content>
 		</json-logger:logger>
 
+		<!-- Check if Salesforce upload is enabled -->
+		<choice doc:name="Check Upload Enabled"
+			doc:id="check-upload-enabled">
+			<when expression="#[p('sfdc.upload.enabled') == 'true']">
+
 		<!-- Convert binary to Base64 for Salesforce VersionData field -->
 		<ee:transform doc:name="Encode Part as Base64"
 			doc:id="encode-part-base64">
@@ -1382,7 +1387,26 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 }]]]></json-logger:content>
 		</json-logger:logger>
 
-		<!-- Call IDP after successful upload -->
+			</when>
+			<otherwise>
+				<!-- Upload disabled - set dummy values and skip SF upload -->
+				<logger doc:name="Log Upload Skipped"
+					doc:id="log-upload-skipped"
+					level="INFO"
+					message="#['UPLOAD_SKIPPED | sfdc.upload.enabled=false | Skipping Salesforce upload for part ' ++ (vars.partNumber as String)]" />
+				<set-variable doc:name="Set dummy ContentVersionId"
+					variableName="newContentVersionId"
+					value="#['SKIPPED']" />
+				<set-variable doc:name="Set dummy ContentDocumentId"
+					variableName="newContentDocumentId"
+					value="#['SKIPPED']" />
+				<set-variable doc:name="Set dummy ContentDocumentLinkId"
+					variableName="newContentDocumentLinkId"
+					value="#['SKIPPED']" />
+			</otherwise>
+		</choice>
+
+		<!-- Call IDP after upload (or skip) -->
 		<choice doc:name="Check IDP Enabled"
 			doc:id="check-idp-enabled">
 			<when expression="#[p('idp.enabled') == 'true']">
@@ -1908,22 +1932,22 @@ vars.correlationId ++ "_" ++ (vars.partNumber as String default "0")]]></ee:set-
 
 				<ee:set-variable variableName="dcExtractedFields"><![CDATA[%dw 2.0
 output application/java
+var fields = vars.idpExtractedData.extractedData.fields default {}
 ---
-if (vars.idpExtractedData.extractedData.structuredData != null)
-	entriesOf(vars.idpExtractedData.extractedData.structuredData) map ((entry, idx) -> {
-		key: entry.key,
-		value: entry.value default "",
-		confidence: entry.attr.confidence default 0.80,
-		pageNumber: entry.attr.pageNumber default 0
-	})
+if (fields != null and sizeOf(entriesOf(fields)) > 0)
+	entriesOf(fields)
+		filter ((entry) -> entry.key != "PromptInstruction")
+		map ((entry, idx) -> {
+			key: entry.key,
+			value: entry.value.value default ""
+		})
 else
 	[]]]></ee:set-variable>
 
 				<ee:set-variable variableName="dcDocumentType"><![CDATA[%dw 2.0
 output application/java
 ---
-vars.idpExtractedData.extractedData.structuredData.documentType
-	default vars.idpExtractedData.extractedData.structuredData.document_type
+vars.idpExtractedData.extractedData.fields.Document_Type.value
 	default "Medical Summary"]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
@@ -1935,10 +1959,8 @@ vars.idpExtractedData.extractedData.structuredData.documentType
 				<ee:set-variable variableName="dcAvgConfidence"><![CDATA[%dw 2.0
 output application/java
 ---
-if (sizeOf(vars.dcExtractedFields default []) > 0)
-	avg(vars.dcExtractedFields map $.confidence)
-else
-	0.80]]></ee:set-variable>
+if (vars.idpExtractedData.extractedData.status == "SUCCEEDED") 0.90
+else 0.50]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 
@@ -1966,23 +1988,24 @@ else "High"]]></ee:set-variable>
 				<ee:message>
 					<ee:set-payload><![CDATA[%dw 2.0
 output application/json
+var fieldsSummary = (vars.dcExtractedFields default [])
+	map ((f) -> f.key ++ ": " ++ (f.value as String default ""))
+	joinBy ", "
 ---
 {
 	data: [{
-		Document_Id__c: vars.dcDocumentId,
-		KQ_Document_Id__c: vars.dcDocumentId,
-		Correlation_Id__c: vars.correlationId,
-		Document_Type__c: vars.dcDocumentType,
-		File_Name__c: (vars.partFileName default "unknown") ++ ".pdf",
-		Total_Pages__c: vars.currentPart.pageCount as Number default 0,
-		Processing_Status__c: vars.idpExtractedData.status default "UNKNOWN",
-		Confidence_Score__c: vars.dcAvgConfidence as Number default 0,
-		AI_Summary__c: vars.idpExtractedData.extractedData.fullText
-			default vars.idpExtractedData.extractedData.text
-			default "",
-		Risk_Level__c: vars.dcRiskLevel,
-		Processed_At__c: now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"},
-		Account_Id__c: vars.accountId default ""
+		Document_Id: vars.dcDocumentId,
+		Correlation_Id: vars.correlationId,
+		Document_Type: vars.dcDocumentType,
+		File_Name: vars.idpExtractedData.extractedData.documentName
+			default ((vars.partFileName default "unknown") ++ ".pdf"),
+		Total_Pages: vars.currentPart.pageCount as Number default 0,
+		Processing_Status: vars.idpExtractedData.extractedData.status default "UNKNOWN",
+		Confidence_Score: vars.dcAvgConfidence as Number default 0,
+		AI_Summary: fieldsSummary default "",
+		Risk_Level: vars.dcRiskLevel,
+		Processed_At: now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"},
+		Account_Id: vars.accountId default ""
 	}]
 }]]></ee:set-payload>
 				</ee:message>
@@ -1993,7 +2016,7 @@ output application/json
 				doc:id="insert-objects-doc-processing"
 				config-ref="Salesforce_Data_Cloud_Config"
 				sourceNameUriParam="${idp.datacloud.sourceApiName}"
-				objectNameUriParam="IDP_Document_Processing__dlm"
+				objectNameUriParam="IDP_Document_Processing"
 				target="dcDocInsertResult" />
 
 			<logger doc:name="Log Doc Processing Streaming Insert"
@@ -2041,14 +2064,13 @@ output application/json
 ---
 {
 	data: vars.dcExtractedFields map ((field, idx) -> {
-		Field_Id__c: vars.dcDocumentId ++ "_" ++ (idx as String),
-		KQ_Field_Id__c: vars.dcDocumentId ++ "_" ++ (idx as String),
-		Document_Id__c: vars.dcDocumentId,
-		Field_Name__c: field.key as String default "",
-		Field_Value__c: field.value as String default "",
-		Confidence__c: field.confidence as Number default 0.80,
-		Page_Number__c: field.pageNumber as Number default 0,
-		Requires_Review__c: (field.confidence as Number default 0.80) < 0.70
+		Field_Id: vars.dcDocumentId ++ "_" ++ (idx as String),
+		Document_Id: vars.dcDocumentId,
+		Field_Name: field.key as String default "",
+		Field_Value: field.value as String default "",
+		Confidence: vars.dcAvgConfidence as Number default 0.90,
+		Page_Number: 0,
+		Requires_Review: false
 	})
 }]]></ee:set-payload>
 						</ee:message>
@@ -2059,7 +2081,7 @@ output application/json
 						doc:id="insert-objects-extracted-fields"
 						config-ref="Salesforce_Data_Cloud_Config"
 						sourceNameUriParam="${idp.datacloud.sourceApiName}"
-						objectNameUriParam="IDP_Extracted_Field__dlm"
+						objectNameUriParam="IDP_Extracted_Field"
 						target="dcFieldsInsertResult" />
 
 					<logger doc:name="Log Extracted Fields Streaming Insert"

@@ -191,22 +191,19 @@
 	<!-- ============================================== -->
 	<!-- SALESFORCE DATA CLOUD CONNECTOR CONFIG         -->
 	<!-- For Streaming Insert into Data Cloud DMOs      -->
-	<!-- Uses OAuth JWT (same as Salesforce Config)     -->
+	<!-- Uses OAuth Client Credentials                  -->
 	<!-- ============================================== -->
 	<sdc:sdc-config name="Salesforce_Data_Cloud_Config"
 		doc:name="Salesforce Data Cloud Config"
 		doc:id="sdc-config">
-		<sdc:oauth-jwt-connection
+		<sdc:oauth-client-credentials-connection
 			consumerKey="${secure::sfdc.consumerkey}"
-			keyStorePath="${mule.env}-jks.jks"
-			storePassword="${secure::sfdc.password}"
-			keyAlias="${sfdc.alias}"
-			subject="${sfdc.principal}"
-			audienceUrl="${sfdc.audience}">
+			consumerSecret="${secure::sfdc.consumersecret}"
+			tokenEndpoint="${sfdc.tokenendpoint}">
 			<reconnection>
-				<reconnect frequency="2000" count="3" />
+				<reconnect count="3" />
 			</reconnection>
-		</sdc:oauth-jwt-connection>
+		</sdc:oauth-client-credentials-connection>
 	</sdc:sdc-config>
 
 	<!-- ============================================== -->
