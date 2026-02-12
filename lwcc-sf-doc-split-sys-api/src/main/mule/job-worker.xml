@@ -130,20 +130,8 @@
 }]]]></json-logger:content>
 			</json-logger:logger>
 
-			<!-- Send callback to Salesforce Apex endpoint -->
-			<choice doc:name="Check Callback Enabled">
-				<when expression="#[p('salesforce.callback.enabled') == 'true' or p('salesforce.callback.enabled') == true]">
-					<async doc:name="Async Callback">
-						<flow-ref doc:name="Send Salesforce Callback"
-							name="salesforce-callback-subflow" />
-					</async>
-				</when>
-				<otherwise>
-					<logger doc:name="Log Callback Disabled"
-						level="DEBUG"
-						message="#['CALLBACK_DISABLED | jobId=' ++ vars.jobId]" />
-				</otherwise>
-			</choice>
+			<!-- SUCCESS callback is now triggered inside process-split-subflow (subflows.xml) -->
+			<!-- This ensures callback fires for both sync and async execution paths -->
 
 			<error-handler>
 				<on-error-continue doc:name="Handle Job Failure">
@@ -336,45 +324,28 @@ var currentStepIndex = (steps indexOf vars.currentStep) default 0
 }]]]></json-logger:content>
 		</json-logger:logger>
 
-		<!-- Build Salesforce Apex-compatible payload -->
-		<ee:transform doc:name="Build Salesforce Callback Payload">
-			<ee:message>
-				<ee:set-payload><![CDATA[%dw 2.0
+		<try doc:name="Try Send Callback">
+			<!-- Build Salesforce Apex-compatible payload -->
+			<ee:transform doc:name="Build Salesforce Callback Payload">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 {
-	claimId: vars.claimId as String,
-	sourceContentDocumentId: vars.contentDocumentId as String,
-	sourceContentVersionId: vars.contentVersion.Id as String,
-	originalFileName: (vars.contentVersion.Title as String) ++ "." ++ (vars.contentVersion.FileExtension as String),
-	originalSizeBytes: vars.contentVersion.ContentSize as Number,
-	originalPageCount: vars.pdfPageCount as Number,
-	partCount: sizeOf(vars.createdParts default []),
+	claimId: (vars.claimId default "") as String,
 	status: vars.jobStatus default "COMPLETED",
-	dryRun: false,
-	parts: vars.createdParts default [] map ((part, index) -> {
-		partNumber: part.partNumber as Number,
-		pageStart: part.pageStart as Number,
-		pageEnd: part.pageEnd as Number,
-		pageCount: part.pageCount as Number,
-		sizeBytes: part.sizeBytes as Number,
-		sizeMb: part.sizeMb as Number,
-		contentVersionId: part.contentVersionId as String,
-		contentDocumentId: part.contentDocumentId as String,
-		contentDocumentLinkId: part.contentDocumentLinkId as String,
-		fileName: part.fileName as String
-	}),
-	correlationId: vars.correlationId as String,
-	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"}
+	correlationId: (vars.correlationId default "") as String,
+	timestamp: now() as String {format: "yyyy-MM-dd'T'HH:mm:ssXXX"},
+	dcOverallSummaryJson: if (vars.dcOverallSummaryJson != null)
+		write(vars.dcOverallSummaryJson, "application/json")
+		else null
 }]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
+				</ee:message>
+			</ee:transform>
 
-		<set-variable doc:name="Store Callback Payload"
-			variableName="callbackPayload"
-			value="#[payload]" />
-
-		<try doc:name="Try Send Callback">
+			<set-variable doc:name="Store Callback Payload"
+				variableName="callbackPayload"
+				value="#[payload]" />
 			<!-- Get SF access token via Java JWT helper (same method used by file download) -->
 			<ee:transform doc:name="Get Token Info via JWT"
 				doc:id="get-token-info">
@@ -449,7 +420,7 @@ SalesforceFileDownloader::getTokenInfo(
 			<error-handler>
 				<on-error-continue
 					doc:name="Handle Callback Failure"
-					type="HTTP:CONNECTIVITY, HTTP:TIMEOUT, HTTP:UNAUTHORIZED, HTTP:BAD_REQUEST, HTTP:INTERNAL_SERVER_ERROR">
+					type="ANY">
 
 					<json-logger:logger
 						doc:name="Log Callback Failed"
@@ -631,8 +602,6 @@ output application/json
 ---
 {
 	claimId: vars.claimId as String,
-	sourceContentDocumentId: vars.contentDocumentId as String,
-	sourceContentVersionId: vars.contentVersion.Id default "" as String,
 	status: "FAILED",
 	error: {
 		errorCode: vars.errorDetails.errorCode default "UNKNOWN_ERROR",

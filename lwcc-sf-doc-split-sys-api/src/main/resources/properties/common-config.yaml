@@ -29,7 +29,7 @@ salesforce:
   retryDelay: "1000"
   callback:
     enabled: "true"
-    path: "SplitDocUploadCallback"
+    path: "IDPSplitDocUploadCallback"
 
 # Object Store Configuration
 objectstore:

@@ -703,6 +703,21 @@ output application/json
 					level="INFO"
 					message="#[output text/plain --- 'UPLOAD_ALL_COMPLETE | uploadedParts=' ++ (sizeOf(vars.uploadedParts) as String) ++ ' | status=COMPLETED']" />
 
+				<!-- Send callback to Salesforce Apex endpoint after all parts processed -->
+				<choice doc:name="Check Callback Enabled">
+					<when expression="#[p('salesforce.callback.enabled') == 'true' or p('salesforce.callback.enabled') == true]">
+						<async doc:name="Async Callback">
+							<flow-ref doc:name="Send Salesforce Callback"
+								name="salesforce-callback-subflow" />
+						</async>
+					</when>
+					<otherwise>
+						<logger doc:name="Log Callback Disabled"
+							level="DEBUG"
+							message="#['CALLBACK_DISABLED | correlationId=' ++ (vars.correlationId default 'unknown')]" />
+					</otherwise>
+				</choice>
+
 				<!-- Store COMPLETED status in idempotency store (if enabled) -->
 				<!-- [STUDIO:"Check Store Idempotency Complete"]<choice doc:name="Check Store
 				Idempotency Complete"
