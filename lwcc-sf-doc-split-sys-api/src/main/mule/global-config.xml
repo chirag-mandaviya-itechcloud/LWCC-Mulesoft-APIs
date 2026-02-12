@@ -4,12 +4,13 @@
 	xmlns:os="http://www.mulesoft.org/schema/mule/os"
 	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
 	xmlns:sdc="http://www.mulesoft.org/schema/mule/sdc"
+	xmlns:ms-agentforce="http://www.mulesoft.org/schema/mule/ms-agentforce"
 	xmlns:file="http://www.mulesoft.org/schema/mule/file"
 	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
 	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
-	xmlns:idp-medical-summarywith-schema-110="http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110"
+	xmlns:idp-medical-summarywith-schema-130="http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-130"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -18,12 +19,13 @@
 		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
 		http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
 		http://www.mulesoft.org/schema/mule/sdc http://www.mulesoft.org/schema/mule/sdc/current/mule-sdc.xsd
+		http://www.mulesoft.org/schema/mule/ms-agentforce http://www.mulesoft.org/schema/mule/ms-agentforce/current/mule-ms-agentforce.xsd
 		http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 		http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
 		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 		http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
 		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
-		http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110 http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110/current/mule-idp-medical-summarywith-schema-110.xsd
+		http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-130 http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-130/current/mule-idp-medical-summarywith-schema-130.xsd
 		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
 
 	<!-- ============================================== -->
@@ -211,7 +213,7 @@
 	<!-- MuleSoft IDP Medical Summary Document Action   -->
 	<!-- OAuth2 Client Credentials handled by connector -->
 	<!-- ============================================== -->
-	<idp-medical-summarywith-schema-110:config
+	<idp-medical-summarywith-schema-130:config
 		name="IDP_Medical_Summary_Config"
 		doc:name="IDP Medical Summary Config"
 		doc:id="idp-connector-config"
@@ -245,6 +247,22 @@
 		doc:id="json-logger-config"
 		environment="${mule.env}"
 		contentFieldsDataMasking="$.payload..ssn,$.payload..socialSecurityNumber,$.payload..SSN,$.payload..email,$.payload..Email,$.payload..emailAddress,$.payload..phone,$.payload..Phone,$.payload..phoneNumber,$.payload..mobilePhone,$.payload..password,$.payload..Password,$.payload..secret,$.payload..token,$.payload..accessToken,$.payload..refreshToken,$.payload..apiKey,$.payload..authorization,$.payload..Authorization,$.payload..dateOfBirth,$.payload..dob,$.payload..DOB,$.payload..driversLicense,$.payload..bankAccount,$.payload..creditCard,$.payload..taxId" />
+
+	<!-- ============================================== -->
+	<!-- AGENTFORCE CONNECTOR CONFIGURATION             -->
+	<!-- For AI Agent Conversations                     -->
+	<!-- Uses OAuth Client Credentials                  -->
+	<!-- ============================================== -->
+	<ms-agentforce:config name="Agentforce_Configuration"
+		doc:name="Agentforce Configuration"
+		doc:id="agentforce-config">
+		<ms-agentforce:oauth-client-credentials-connection>
+			<ms-agentforce:oauth-client-credentials
+				clientId="${secure::sfdc.consumerkey}"
+				clientSecret="${secure::sfdc.consumersecret}"
+				tokenUrl="${sfdc.endpoint}" />
+		</ms-agentforce:oauth-client-credentials-connection>
+	</ms-agentforce:config>
 
 	<!-- ============================================== -->
 	<!-- GLOBAL ERROR HANDLER REFERENCE                 -->

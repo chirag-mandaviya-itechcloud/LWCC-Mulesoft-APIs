@@ -27,6 +27,8 @@ components:
           format: date-time
         Account_Id:
           type: string
+        Claim_Id:
+          type: string
     IDP_Extracted_Field:
       type: object
       properties:
@@ -44,3 +46,5 @@ components:
           type: number
         Requires_Review:
           type: boolean
+        Claim_Id:
+          type: string

@@ -105,3 +105,8 @@ idp:
   datacloud:
     enabled: "true"
     sourceApiName: "IDP"  # Data Cloud Ingestion API source name (must match source created in Data Cloud Setup)
+
+# Agentforce Configuration
+agentforce:
+  enabled: "true"
+  agentId: "0XxVA0000002FCf0AM"  # Einstein Agent ID from Salesforce Setup > Agents

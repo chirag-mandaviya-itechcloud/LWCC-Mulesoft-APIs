@@ -1,24 +1,26 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule
+	xmlns:idp-medical-summarywith-schema-130="http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-130"
+	xmlns:ms-agentforce="http://www.mulesoft.org/schema/mule/ms-agentforce"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
 	xmlns:os="http://www.mulesoft.org/schema/mule/os"
 	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
 	xmlns:sdc="http://www.mulesoft.org/schema/mule/sdc"
 	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
-	xmlns:idp-medical-summarywith-schema-110="http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="
-		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-		http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
-		http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
-		http://www.mulesoft.org/schema/mule/sdc http://www.mulesoft.org/schema/mule/sdc/current/mule-sdc.xsd
-		http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
-		http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110 http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-110/current/mule-idp-medical-summarywith-schema-110.xsd
-		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+						http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+						http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+						http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+						http://www.mulesoft.org/schema/mule/sdc http://www.mulesoft.org/schema/mule/sdc/current/mule-sdc.xsd
+						http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+						http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+						http://www.mulesoft.org/schema/mule/ms-agentforce http://www.mulesoft.org/schema/mule/ms-agentforce/current/mule-ms-agentforce.xsd
+						http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-130 http://www.mulesoft.org/schema/mule/idp-medical-summarywith-schema-130/current/mule-idp-medical-summarywith-schema-130.xsd">
 
 	<!-- ============================================== -->
 	<!-- VALIDATE CLAIM EXISTS SUBFLOW                  -->
@@ -340,39 +342,39 @@ output application/json
 					level="INFO"
 					message="#['UPLOAD_MODE | Starting upload of ' ++ (sizeOf(vars.splitParts) as String) ++ ' parts to Salesforce']" />
 
-			<logger doc:name="Log Parallel Upload Start"
-				doc:id="log-parallel-upload-start"
-				level="INFO"
-				message="#['PARALLEL_UPLOAD | Starting parallel upload of ' ++ (sizeOf(vars.splitParts) as String) ++ ' parts']" />
+				<logger doc:name="Log Parallel Upload Start"
+					doc:id="log-parallel-upload-start"
+					level="INFO"
+					message="#['PARALLEL_UPLOAD | Starting parallel upload of ' ++ (sizeOf(vars.splitParts) as String) ++ ' parts']" />
 
-			<!-- Upload all parts in parallel using scatter-gather -->
-			<!-- Each route processes one part if it exists (max 5 parts per config) -->
-			<scatter-gather doc:name="Upload All Parts in Parallel"
-				doc:id="scatter-gather-upload">
+				<!-- Upload all parts in parallel using scatter-gather -->
+				<!-- Each route processes one part if it exists (max 5 parts per config) -->
+				<scatter-gather doc:name="Upload All Parts in Parallel"
+					doc:id="scatter-gather-upload">
 
-				<!-- Route 1: Process Part 1 (if exists) -->
-				<route>
-					<choice doc:name="Check Part 1 Exists">
-						<when expression="#[sizeOf(vars.splitParts) >= 1]">
-							<set-variable doc:name="Set current part"
-								variableName="currentPart"
-								value="#[vars.splitParts[0]]" />
-							<set-variable doc:name="Set part number"
-								variableName="partNumber"
-								value="#[vars.currentPart.partNumber]" />
-							<set-variable doc:name="Set part filename"
-								variableName="partFileName"
-								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
-							<set-variable doc:name="Set part content"
-								variableName="partContent"
-								value="#[vars.currentPart.pdfBytes]" />
-							<logger level="INFO"
-								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
-							<flow-ref doc:name="Upload Part 1"
-								name="upload-part-to-salesforce-subflow" />
-							<ee:transform doc:name="Build Part 1 Result">
-								<ee:message>
-									<ee:set-payload><![CDATA[%dw 2.0
+					<!-- Route 1: Process Part 1 (if exists) -->
+					<route>
+						<choice doc:name="Check Part 1 Exists">
+							<when expression="#[sizeOf(vars.splitParts) >= 1]">
+								<set-variable doc:name="Set current part"
+									variableName="currentPart"
+									value="#[vars.splitParts[0]]" />
+								<set-variable doc:name="Set part number"
+									variableName="partNumber"
+									value="#[vars.currentPart.partNumber]" />
+								<set-variable doc:name="Set part filename"
+									variableName="partFileName"
+									value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+								<set-variable doc:name="Set part content"
+									variableName="partContent"
+									value="#[vars.currentPart.pdfBytes]" />
+								<logger level="INFO"
+									message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+								<flow-ref doc:name="Upload Part 1"
+									name="upload-part-to-salesforce-subflow" />
+								<ee:transform doc:name="Build Part 1 Result">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 {
@@ -387,38 +389,38 @@ output application/java
 	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
 	fileName: vars.currentPart.fileName as String
 }]]></ee:set-payload>
-								</ee:message>
-							</ee:transform>
-						</when>
-						<otherwise>
-							<set-payload value="#[null]" />
-						</otherwise>
-					</choice>
-				</route>
+									</ee:message>
+								</ee:transform>
+							</when>
+							<otherwise>
+								<set-payload value="#[null]" />
+							</otherwise>
+						</choice>
+					</route>
 
-				<!-- Route 2: Process Part 2 (if exists) -->
-				<route>
-					<choice doc:name="Check Part 2 Exists">
-						<when expression="#[sizeOf(vars.splitParts) >= 2]">
-							<set-variable doc:name="Set current part"
-								variableName="currentPart"
-								value="#[vars.splitParts[1]]" />
-							<set-variable doc:name="Set part number"
-								variableName="partNumber"
-								value="#[vars.currentPart.partNumber]" />
-							<set-variable doc:name="Set part filename"
-								variableName="partFileName"
-								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
-							<set-variable doc:name="Set part content"
-								variableName="partContent"
-								value="#[vars.currentPart.pdfBytes]" />
-							<logger level="INFO"
-								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
-							<flow-ref doc:name="Upload Part 2"
-								name="upload-part-to-salesforce-subflow" />
-							<ee:transform doc:name="Build Part 2 Result">
-								<ee:message>
-									<ee:set-payload><![CDATA[%dw 2.0
+					<!-- Route 2: Process Part 2 (if exists) -->
+					<route>
+						<choice doc:name="Check Part 2 Exists">
+							<when expression="#[sizeOf(vars.splitParts) >= 2]">
+								<set-variable doc:name="Set current part"
+									variableName="currentPart"
+									value="#[vars.splitParts[1]]" />
+								<set-variable doc:name="Set part number"
+									variableName="partNumber"
+									value="#[vars.currentPart.partNumber]" />
+								<set-variable doc:name="Set part filename"
+									variableName="partFileName"
+									value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+								<set-variable doc:name="Set part content"
+									variableName="partContent"
+									value="#[vars.currentPart.pdfBytes]" />
+								<logger level="INFO"
+									message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+								<flow-ref doc:name="Upload Part 2"
+									name="upload-part-to-salesforce-subflow" />
+								<ee:transform doc:name="Build Part 2 Result">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 {
@@ -433,38 +435,38 @@ output application/java
 	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
 	fileName: vars.currentPart.fileName as String
 }]]></ee:set-payload>
-								</ee:message>
-							</ee:transform>
-						</when>
-						<otherwise>
-							<set-payload value="#[null]" />
-						</otherwise>
-					</choice>
-				</route>
+									</ee:message>
+								</ee:transform>
+							</when>
+							<otherwise>
+								<set-payload value="#[null]" />
+							</otherwise>
+						</choice>
+					</route>
 
-				<!-- Route 3: Process Part 3 (if exists) -->
-				<route>
-					<choice doc:name="Check Part 3 Exists">
-						<when expression="#[sizeOf(vars.splitParts) >= 3]">
-							<set-variable doc:name="Set current part"
-								variableName="currentPart"
-								value="#[vars.splitParts[2]]" />
-							<set-variable doc:name="Set part number"
-								variableName="partNumber"
-								value="#[vars.currentPart.partNumber]" />
-							<set-variable doc:name="Set part filename"
-								variableName="partFileName"
-								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
-							<set-variable doc:name="Set part content"
-								variableName="partContent"
-								value="#[vars.currentPart.pdfBytes]" />
-							<logger level="INFO"
-								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
-							<flow-ref doc:name="Upload Part 3"
-								name="upload-part-to-salesforce-subflow" />
-							<ee:transform doc:name="Build Part 3 Result">
-								<ee:message>
-									<ee:set-payload><![CDATA[%dw 2.0
+					<!-- Route 3: Process Part 3 (if exists) -->
+					<route>
+						<choice doc:name="Check Part 3 Exists">
+							<when expression="#[sizeOf(vars.splitParts) >= 3]">
+								<set-variable doc:name="Set current part"
+									variableName="currentPart"
+									value="#[vars.splitParts[2]]" />
+								<set-variable doc:name="Set part number"
+									variableName="partNumber"
+									value="#[vars.currentPart.partNumber]" />
+								<set-variable doc:name="Set part filename"
+									variableName="partFileName"
+									value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+								<set-variable doc:name="Set part content"
+									variableName="partContent"
+									value="#[vars.currentPart.pdfBytes]" />
+								<logger level="INFO"
+									message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+								<flow-ref doc:name="Upload Part 3"
+									name="upload-part-to-salesforce-subflow" />
+								<ee:transform doc:name="Build Part 3 Result">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 {
@@ -479,38 +481,38 @@ output application/java
 	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
 	fileName: vars.currentPart.fileName as String
 }]]></ee:set-payload>
-								</ee:message>
-							</ee:transform>
-						</when>
-						<otherwise>
-							<set-payload value="#[null]" />
-						</otherwise>
-					</choice>
-				</route>
+									</ee:message>
+								</ee:transform>
+							</when>
+							<otherwise>
+								<set-payload value="#[null]" />
+							</otherwise>
+						</choice>
+					</route>
 
-				<!-- Route 4: Process Part 4 (if exists) -->
-				<route>
-					<choice doc:name="Check Part 4 Exists">
-						<when expression="#[sizeOf(vars.splitParts) >= 4]">
-							<set-variable doc:name="Set current part"
-								variableName="currentPart"
-								value="#[vars.splitParts[3]]" />
-							<set-variable doc:name="Set part number"
-								variableName="partNumber"
-								value="#[vars.currentPart.partNumber]" />
-							<set-variable doc:name="Set part filename"
-								variableName="partFileName"
-								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
-							<set-variable doc:name="Set part content"
-								variableName="partContent"
-								value="#[vars.currentPart.pdfBytes]" />
-							<logger level="INFO"
-								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
-							<flow-ref doc:name="Upload Part 4"
-								name="upload-part-to-salesforce-subflow" />
-							<ee:transform doc:name="Build Part 4 Result">
-								<ee:message>
-									<ee:set-payload><![CDATA[%dw 2.0
+					<!-- Route 4: Process Part 4 (if exists) -->
+					<route>
+						<choice doc:name="Check Part 4 Exists">
+							<when expression="#[sizeOf(vars.splitParts) >= 4]">
+								<set-variable doc:name="Set current part"
+									variableName="currentPart"
+									value="#[vars.splitParts[3]]" />
+								<set-variable doc:name="Set part number"
+									variableName="partNumber"
+									value="#[vars.currentPart.partNumber]" />
+								<set-variable doc:name="Set part filename"
+									variableName="partFileName"
+									value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+								<set-variable doc:name="Set part content"
+									variableName="partContent"
+									value="#[vars.currentPart.pdfBytes]" />
+								<logger level="INFO"
+									message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+								<flow-ref doc:name="Upload Part 4"
+									name="upload-part-to-salesforce-subflow" />
+								<ee:transform doc:name="Build Part 4 Result">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 {
@@ -525,38 +527,38 @@ output application/java
 	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
 	fileName: vars.currentPart.fileName as String
 }]]></ee:set-payload>
-								</ee:message>
-							</ee:transform>
-						</when>
-						<otherwise>
-							<set-payload value="#[null]" />
-						</otherwise>
-					</choice>
-				</route>
+									</ee:message>
+								</ee:transform>
+							</when>
+							<otherwise>
+								<set-payload value="#[null]" />
+							</otherwise>
+						</choice>
+					</route>
 
-				<!-- Route 5: Process Part 5 (if exists) -->
-				<route>
-					<choice doc:name="Check Part 5 Exists">
-						<when expression="#[sizeOf(vars.splitParts) >= 5]">
-							<set-variable doc:name="Set current part"
-								variableName="currentPart"
-								value="#[vars.splitParts[4]]" />
-							<set-variable doc:name="Set part number"
-								variableName="partNumber"
-								value="#[vars.currentPart.partNumber]" />
-							<set-variable doc:name="Set part filename"
-								variableName="partFileName"
-								value="#[vars.currentPart.fileName replace '.pdf' with '']" />
-							<set-variable doc:name="Set part content"
-								variableName="partContent"
-								value="#[vars.currentPart.pdfBytes]" />
-							<logger level="INFO"
-								message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
-							<flow-ref doc:name="Upload Part 5"
-								name="upload-part-to-salesforce-subflow" />
-							<ee:transform doc:name="Build Part 5 Result">
-								<ee:message>
-									<ee:set-payload><![CDATA[%dw 2.0
+					<!-- Route 5: Process Part 5 (if exists) -->
+					<route>
+						<choice doc:name="Check Part 5 Exists">
+							<when expression="#[sizeOf(vars.splitParts) >= 5]">
+								<set-variable doc:name="Set current part"
+									variableName="currentPart"
+									value="#[vars.splitParts[4]]" />
+								<set-variable doc:name="Set part number"
+									variableName="partNumber"
+									value="#[vars.currentPart.partNumber]" />
+								<set-variable doc:name="Set part filename"
+									variableName="partFileName"
+									value="#[vars.currentPart.fileName replace '.pdf' with '']" />
+								<set-variable doc:name="Set part content"
+									variableName="partContent"
+									value="#[vars.currentPart.pdfBytes]" />
+								<logger level="INFO"
+									message="#['PARALLEL_UPLOAD_PART | Part ' ++ (vars.partNumber as String) ++ ' | fileName=' ++ vars.partFileName]" />
+								<flow-ref doc:name="Upload Part 5"
+									name="upload-part-to-salesforce-subflow" />
+								<ee:transform doc:name="Build Part 5 Result">
+									<ee:message>
+										<ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 {
@@ -571,87 +573,91 @@ output application/java
 	contentDocumentLinkId: vars.newContentDocumentLinkId as String,
 	fileName: vars.currentPart.fileName as String
 }]]></ee:set-payload>
-								</ee:message>
-							</ee:transform>
-						</when>
-						<otherwise>
-							<set-payload value="#[null]" />
-						</otherwise>
-					</choice>
-				</route>
+									</ee:message>
+								</ee:transform>
+							</when>
+							<otherwise>
+								<set-payload value="#[null]" />
+							</otherwise>
+						</choice>
+					</route>
 
-			</scatter-gather>
+				</scatter-gather>
 
-			<!-- Aggregate results from parallel uploads -->
-			<ee:transform doc:name="Aggregate Upload Results"
-				doc:id="aggregate-upload-results">
-				<ee:variables>
-					<ee:set-variable variableName="uploadedParts"><![CDATA[%dw 2.0
+				<!-- Aggregate results from parallel uploads -->
+				<ee:transform doc:name="Aggregate Upload Results"
+					doc:id="aggregate-upload-results">
+					<ee:variables>
+						<ee:set-variable variableName="uploadedParts"><![CDATA[%dw 2.0
 output application/java
 ---
 // Extract payloads from scatter-gather Object structure
 valuesOf(payload) map $.payload filter ($ != null) orderBy $.partNumber]]></ee:set-variable>
-					<ee:set-variable variableName="totalParts"><![CDATA[%dw 2.0
+						<ee:set-variable variableName="totalParts"><![CDATA[%dw 2.0
 output application/java
 ---
 sizeOf(vars.splitParts)]]></ee:set-variable>
-					<ee:set-variable variableName="successfulParts"><![CDATA[%dw 2.0
+						<ee:set-variable variableName="successfulParts"><![CDATA[%dw 2.0
 output application/java
 ---
 sizeOf(valuesOf(payload) map $.payload filter ($ != null))]]></ee:set-variable>
-				</ee:variables>
-			</ee:transform>
+					</ee:variables>
+				</ee:transform>
 
-			<!-- Merge IDP results after all uploads complete -->
-			<choice doc:name="Check IDP Merge Enabled"
-				doc:id="check-idp-merge-enabled">
-				<when expression="#[p('idp.enabled') == 'true' and p('idp.aggregation.enabled') == 'true']">
+				<!-- Merge IDP results after all uploads complete -->
+				<choice doc:name="Check IDP Merge Enabled"
+					doc:id="check-idp-merge-enabled">
+					<when
+						expression="#[p('idp.enabled') == 'true' and p('idp.aggregation.enabled') == 'true']">
 
-					<logger doc:name="Log IDP Merge Wait"
-						doc:id="log-idp-merge-wait"
-						level="INFO"
-						message="#['IDP_MERGE_WAIT | Waiting for all IDP extractions to complete']" />
+						<logger doc:name="Log IDP Merge Wait"
+							doc:id="log-idp-merge-wait"
+							level="INFO"
+							message="#['IDP_MERGE_WAIT | Waiting for all IDP extractions to complete']" />
 
-					<!-- Wait and retry until all parts are processed -->
-					<until-successful maxRetries="10" millisBetweenRetries="2000"
-						doc:name="Retry Until All Parts Processed"
-						doc:id="retry-until-all-processed">
-						<flow-ref doc:name="Merge IDP Results"
-							doc:id="merge-idp-results-ref"
-							name="merge-idp-results-subflow" />
-					</until-successful>
+						<!-- Wait and retry until all parts are processed -->
+						<until-successful maxRetries="10" millisBetweenRetries="2000"
+							doc:name="Retry Until All Parts Processed"
+							doc:id="retry-until-all-processed">
+							<flow-ref doc:name="Merge IDP Results"
+								doc:id="merge-idp-results-ref"
+								name="merge-idp-results-subflow" />
+						</until-successful>
 
-				</when>
-				<otherwise>
-					<logger doc:name="Log IDP Disabled"
-						doc:id="log-idp-disabled"
-						level="DEBUG"
-						message="#['IDP_DISABLED | IDP integration is disabled or aggregation is off']" />
+					</when>
+					<otherwise>
+						<logger doc:name="Log IDP Disabled"
+							doc:id="log-idp-disabled"
+							level="DEBUG"
+							message="#['IDP_DISABLED | IDP integration is disabled or aggregation is off']" />
 
-					<!-- Set mergedIdpData to null when IDP is disabled -->
-					<set-variable doc:name="Set No IDP Data"
-						doc:id="set-no-idp-data"
-						variableName="mergedIdpData"
-						value="#[null]" />
-				</otherwise>
-			</choice>
+						<!-- Set mergedIdpData to null when IDP is disabled -->
+						<set-variable doc:name="Set No IDP Data"
+							doc:id="set-no-idp-data"
+							variableName="mergedIdpData"
+							value="#[null]" />
+					</otherwise>
+				</choice>
 
-			<!-- Check for partial or total failures -->
-			<!-- [STUDIO:"Check Upload Results"]<choice doc:name="Check Upload Results">
+				<!-- Check for partial or total failures -->
+				<!-- [STUDIO:"Check Upload Results"]<choice doc:name="Check Upload Results">
 				<when expression="#[vars.successfulParts == 0&#93;">
 					<logger level="ERROR"
-						message="#['PARALLEL_UPLOAD_FAILED | All ' ++ (vars.totalParts as String) ++ ' parts failed to upload'&#93;" />
+						message="#['PARALLEL_UPLOAD_FAILED | All ' ++ (vars.totalParts as String) ++ ' parts failed to
+				upload'&#93;" />
 					<raise-error type="APP:UPLOAD_FAILED"
 						description="All parts failed to upload to Salesforce" />
 				</when>
 				<when expression="#[vars.successfulParts &lt; vars.totalParts&#93;">
 					<logger level="WARN"
-						message="#['PARALLEL_UPLOAD_PARTIAL | Uploaded ' ++ (vars.successfulParts as String) ++ ' of ' ++ (vars.totalParts as String) ++ ' parts successfully. Some uploads failed.'&#93;" />
+						message="#['PARALLEL_UPLOAD_PARTIAL | Uploaded ' ++ (vars.successfulParts as String) ++ ' of ' ++
+				(vars.totalParts as String) ++ ' parts successfully. Some uploads failed.'&#93;" />
 					<!&#45;&#45; Continue with partial success - API will return successful parts &#45;&#45;>
 				</when>
 				<otherwise>
 					<logger level="INFO"
-						message="#['PARALLEL_UPLOAD_COMPLETE | Successfully uploaded all ' ++ (vars.successfulParts as String) ++ ' parts in parallel'&#93;" />
+						message="#['PARALLEL_UPLOAD_COMPLETE | Successfully uploaded all ' ++ (vars.successfulParts as
+				String) ++ ' parts in parallel'&#93;" />
 				</otherwise>
 			</choice> [STUDIO] -->
 
@@ -698,7 +704,8 @@ output application/json
 					message="#[output text/plain --- 'UPLOAD_ALL_COMPLETE | uploadedParts=' ++ (sizeOf(vars.uploadedParts) as String) ++ ' | status=COMPLETED']" />
 
 				<!-- Store COMPLETED status in idempotency store (if enabled) -->
-				<!-- [STUDIO:"Check Store Idempotency Complete"]<choice doc:name="Check Store Idempotency Complete"
+				<!-- [STUDIO:"Check Store Idempotency Complete"]<choice doc:name="Check Store
+				Idempotency Complete"
 					doc:id="check-store-idempotency-complete">
 					<when expression="#[p('idempotency.enabled') == 'true' and vars.idempotencyKey != null&#93;">
 						<set-variable doc:name="Set idempotency COMPLETED"
@@ -926,7 +933,8 @@ SalesforceFileDownloader::getFileHexDump(vars.pdfTempFile, 64)]]></ee:set-variab
 		<!-- Check if compression is enabled -->
 		<choice doc:name="Check Compression Enabled"
 			doc:id="check-compression-enabled">
-			<when expression="#[p('compression.enabled') == 'true' or p('compression.enabled') == true]">
+			<when
+				expression="#[p('compression.enabled') == 'true' or p('compression.enabled') == true]">
 
 				<json-logger:logger
 					doc:name="Log Compression Start"
@@ -1196,185 +1204,185 @@ SalesforceFileDownloader::deleteFile(vars.pdfTempFile)]]></ee:set-variable>
 			doc:id="check-upload-enabled">
 			<when expression="#[p('sfdc.upload.enabled') == 'true']">
 
-		<!-- Convert binary to Base64 for Salesforce VersionData field -->
-		<ee:transform doc:name="Encode Part as Base64"
-			doc:id="encode-part-base64">
-			<ee:variables>
-				<ee:set-variable variableName="partContentBase64"><![CDATA[%dw 2.0
+				<!-- Convert binary to Base64 for Salesforce VersionData field -->
+				<ee:transform doc:name="Encode Part as Base64"
+					doc:id="encode-part-base64">
+					<ee:variables>
+						<ee:set-variable variableName="partContentBase64"><![CDATA[%dw 2.0
 output text/plain
 import * from dw::core::Binaries
 ---
 toBase64(vars.partContent as Binary)]]></ee:set-variable>
-			</ee:variables>
-		</ee:transform>
+					</ee:variables>
+				</ee:transform>
 
-		<logger doc:name="Log Base64 Size"
-			doc:id="log-base64-size"
-			level="DEBUG"
-			message="#['UPLOAD_BASE64 | Part ' ++ (vars.partNumber as String) ++ ' | base64Length=' ++ (sizeOf(vars.partContentBase64) as String)]" />
+				<logger doc:name="Log Base64 Size"
+					doc:id="log-base64-size"
+					level="DEBUG"
+					message="#['UPLOAD_BASE64 | Part ' ++ (vars.partNumber as String) ++ ' | base64Length=' ++ (sizeOf(vars.partContentBase64) as String)]" />
 
-		<!-- Create ContentVersion with error handling -->
-		<try doc:name="Try Create ContentVersion"
-			doc:id="try-create-cv">
+				<!-- Create ContentVersion with error handling -->
+				<try doc:name="Try Create ContentVersion"
+					doc:id="try-create-cv">
 
-			<salesforce:create doc:name="Create ContentVersion"
-				doc:id="create-content-version"
-				config-ref="Salesforce_Config"
-				type="ContentVersion"
-				target="createResult">
-				<salesforce:records><![CDATA[#[[{
+					<salesforce:create doc:name="Create ContentVersion"
+						doc:id="create-content-version"
+						config-ref="Salesforce_Config"
+						type="ContentVersion"
+						target="createResult">
+						<salesforce:records><![CDATA[#[[{
 	Title: vars.partFileName,
 	PathOnClient: vars.partFileName ++ '.pdf',
 	VersionData: vars.partContentBase64
 }]]]]></salesforce:records>
-			</salesforce:create>
+					</salesforce:create>
 
-			<logger doc:name="Log CV Create Result"
-				doc:id="log-cv-result"
-				level="INFO"
-				message="#['SALESFORCE_CREATE_CV | success=' ++ (vars.createResult.successful as String default 'unknown') ++ ' | id=' ++ (vars.createResult.items[0].id default 'null')]" />
+					<logger doc:name="Log CV Create Result"
+						doc:id="log-cv-result"
+						level="INFO"
+						message="#['SALESFORCE_CREATE_CV | success=' ++ (vars.createResult.successful as String default 'unknown') ++ ' | id=' ++ (vars.createResult.items[0].id default 'null')]" />
 
-			<!-- Check if creation was successful -->
-			<choice doc:name="Check CV Creation Success"
-				doc:id="check-cv-success">
-				<when expression="#[vars.createResult.successful != true]">
-					<logger doc:name="Log CV Create Failed"
-						doc:id="log-cv-failed"
-						level="ERROR"
-						message="#['SALESFORCE_ERROR | ContentVersion creation failed | errors=' ++ write(vars.createResult, 'application/json')]" />
-					<raise-error doc:name="Raise SF Error"
-						doc:id="raise-sf-cv-error"
-						type="APP:SALESFORCE_ERROR"
-						description="#['Failed to create ContentVersion: ' ++ (vars.createResult.items[0].payload.errors[0].message default 'Unknown error')]" />
-				</when>
-			</choice>
+					<!-- Check if creation was successful -->
+					<choice doc:name="Check CV Creation Success"
+						doc:id="check-cv-success">
+						<when expression="#[vars.createResult.successful != true]">
+							<logger doc:name="Log CV Create Failed"
+								doc:id="log-cv-failed"
+								level="ERROR"
+								message="#['SALESFORCE_ERROR | ContentVersion creation failed | errors=' ++ write(vars.createResult, 'application/json')]" />
+							<raise-error doc:name="Raise SF Error"
+								doc:id="raise-sf-cv-error"
+								type="APP:SALESFORCE_ERROR"
+								description="#['Failed to create ContentVersion: ' ++ (vars.createResult.items[0].payload.errors[0].message default 'Unknown error')]" />
+						</when>
+					</choice>
 
-			<error-handler>
-				<on-error-propagate doc:name="On CV Create Error"
-					doc:id="on-cv-error"
-					type="ANY">
-					<logger doc:name="Log CV Exception"
-						doc:id="log-cv-exception"
-						level="ERROR"
-						message="#['SALESFORCE_EXCEPTION | ContentVersion creation failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
-				</on-error-propagate>
-			</error-handler>
-		</try>
+					<error-handler>
+						<on-error-propagate doc:name="On CV Create Error"
+							doc:id="on-cv-error"
+							type="ANY">
+							<logger doc:name="Log CV Exception"
+								doc:id="log-cv-exception"
+								level="ERROR"
+								message="#['SALESFORCE_EXCEPTION | ContentVersion creation failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
+						</on-error-propagate>
+					</error-handler>
+				</try>
 
-		<!-- Store created ContentVersionId -->
-		<set-variable doc:name="Set new ContentVersionId"
-			doc:id="set-new-cv-id"
-			variableName="newContentVersionId"
-			value="#[vars.createResult.items[0].id]" />
+				<!-- Store created ContentVersionId -->
+				<set-variable doc:name="Set new ContentVersionId"
+					doc:id="set-new-cv-id"
+					variableName="newContentVersionId"
+					value="#[vars.createResult.items[0].id]" />
 
-		<logger doc:name="Log CV Created"
-			doc:id="log-cv-created"
-			level="INFO"
-			message="#['UPLOAD_CV_SUCCESS | newContentVersionId=' ++ vars.newContentVersionId]" />
+				<logger doc:name="Log CV Created"
+					doc:id="log-cv-created"
+					level="INFO"
+					message="#['UPLOAD_CV_SUCCESS | newContentVersionId=' ++ vars.newContentVersionId]" />
 
-		<!-- Query for the ContentDocumentId created -->
-		<try doc:name="Try Query ContentDocumentId"
-			doc:id="try-query-doc-id">
+				<!-- Query for the ContentDocumentId created -->
+				<try doc:name="Try Query ContentDocumentId"
+					doc:id="try-query-doc-id">
 
-			<salesforce:query doc:name="Query new ContentDocumentId"
-				doc:id="query-new-doc-id"
-				config-ref="Salesforce_Config"
-				target="newDocResult">
-				<salesforce:salesforce-query><![CDATA[SELECT ContentDocumentId FROM ContentVersion WHERE Id = ':cvId']]></salesforce:salesforce-query>
-				<salesforce:parameters><![CDATA[#[{
+					<salesforce:query doc:name="Query new ContentDocumentId"
+						doc:id="query-new-doc-id"
+						config-ref="Salesforce_Config"
+						target="newDocResult">
+						<salesforce:salesforce-query><![CDATA[SELECT ContentDocumentId FROM ContentVersion WHERE Id = ':cvId']]></salesforce:salesforce-query>
+						<salesforce:parameters><![CDATA[#[{
 	cvId: vars.newContentVersionId
 }]]]></salesforce:parameters>
-			</salesforce:query>
+					</salesforce:query>
 
-			<logger doc:name="Log Query Result"
-				doc:id="log-query-result"
-				level="DEBUG"
-				message="#['SALESFORCE_QUERY | ContentDocumentId query result count=' ++ (sizeOf(vars.newDocResult) as String)]" />
+					<logger doc:name="Log Query Result"
+						doc:id="log-query-result"
+						level="DEBUG"
+						message="#['SALESFORCE_QUERY | ContentDocumentId query result count=' ++ (sizeOf(vars.newDocResult) as String)]" />
 
-			<error-handler>
-				<on-error-propagate doc:name="On Query Error"
-					doc:id="on-query-error"
-					type="ANY">
-					<logger doc:name="Log Query Exception"
-						doc:id="log-query-exception"
-						level="ERROR"
-						message="#['SALESFORCE_EXCEPTION | Query ContentDocumentId failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
-				</on-error-propagate>
-			</error-handler>
-		</try>
+					<error-handler>
+						<on-error-propagate doc:name="On Query Error"
+							doc:id="on-query-error"
+							type="ANY">
+							<logger doc:name="Log Query Exception"
+								doc:id="log-query-exception"
+								level="ERROR"
+								message="#['SALESFORCE_EXCEPTION | Query ContentDocumentId failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
+						</on-error-propagate>
+					</error-handler>
+				</try>
 
-		<set-variable doc:name="Set new ContentDocumentId"
-			doc:id="set-new-doc-id"
-			variableName="newContentDocumentId"
-			value="#[vars.newDocResult[0].ContentDocumentId]" />
+				<set-variable doc:name="Set new ContentDocumentId"
+					doc:id="set-new-doc-id"
+					variableName="newContentDocumentId"
+					value="#[vars.newDocResult[0].ContentDocumentId]" />
 
-		<logger doc:name="Log Doc ID Retrieved"
-			doc:id="log-doc-id"
-			level="INFO"
-			message="#['UPLOAD_DOC_ID | newContentDocumentId=' ++ vars.newContentDocumentId]" />
+				<logger doc:name="Log Doc ID Retrieved"
+					doc:id="log-doc-id"
+					level="INFO"
+					message="#['UPLOAD_DOC_ID | newContentDocumentId=' ++ vars.newContentDocumentId]" />
 
-		<!-- Create ContentDocumentLink to claim -->
-		<try doc:name="Try Create ContentDocumentLink"
-			doc:id="try-create-link">
+				<!-- Create ContentDocumentLink to claim -->
+				<try doc:name="Try Create ContentDocumentLink"
+					doc:id="try-create-link">
 
-			<salesforce:create doc:name="Create ContentDocumentLink"
-				doc:id="create-doc-link"
-				config-ref="Salesforce_Config"
-				type="ContentDocumentLink"
-				target="linkResult">
-				<salesforce:records><![CDATA[#[[{
+					<salesforce:create doc:name="Create ContentDocumentLink"
+						doc:id="create-doc-link"
+						config-ref="Salesforce_Config"
+						type="ContentDocumentLink"
+						target="linkResult">
+						<salesforce:records><![CDATA[#[[{
 	ContentDocumentId: vars.newContentDocumentId,
 	LinkedEntityId: vars.claimId,
 	ShareType: 'V',
 	Visibility: 'AllUsers'
 }]]]]></salesforce:records>
-			</salesforce:create>
+					</salesforce:create>
 
-			<logger doc:name="Log Link Create Result"
-				doc:id="log-link-result"
-				level="INFO"
-				message="#['SALESFORCE_CREATE_LINK | success=' ++ (vars.linkResult.successful as String default 'unknown') ++ ' | id=' ++ (vars.linkResult.items[0].id default 'null')]" />
+					<logger doc:name="Log Link Create Result"
+						doc:id="log-link-result"
+						level="INFO"
+						message="#['SALESFORCE_CREATE_LINK | success=' ++ (vars.linkResult.successful as String default 'unknown') ++ ' | id=' ++ (vars.linkResult.items[0].id default 'null')]" />
 
-			<!-- Check if link creation was successful -->
-			<choice doc:name="Check Link Creation Success"
-				doc:id="check-link-success">
-				<when expression="#[vars.linkResult.successful != true]">
-					<logger doc:name="Log Link Create Failed"
-						doc:id="log-link-failed"
-						level="ERROR"
-						message="#['SALESFORCE_ERROR | ContentDocumentLink creation failed | errors=' ++ write(vars.linkResult, 'application/json')]" />
-					<raise-error doc:name="Raise SF Link Error"
-						doc:id="raise-sf-link-error"
-						type="APP:SALESFORCE_ERROR"
-						description="#['Failed to create ContentDocumentLink: ' ++ (vars.linkResult.items[0].payload.errors[0].message default 'Unknown error')]" />
-				</when>
-			</choice>
+					<!-- Check if link creation was successful -->
+					<choice doc:name="Check Link Creation Success"
+						doc:id="check-link-success">
+						<when expression="#[vars.linkResult.successful != true]">
+							<logger doc:name="Log Link Create Failed"
+								doc:id="log-link-failed"
+								level="ERROR"
+								message="#['SALESFORCE_ERROR | ContentDocumentLink creation failed | errors=' ++ write(vars.linkResult, 'application/json')]" />
+							<raise-error doc:name="Raise SF Link Error"
+								doc:id="raise-sf-link-error"
+								type="APP:SALESFORCE_ERROR"
+								description="#['Failed to create ContentDocumentLink: ' ++ (vars.linkResult.items[0].payload.errors[0].message default 'Unknown error')]" />
+						</when>
+					</choice>
 
-			<error-handler>
-				<on-error-propagate doc:name="On Link Create Error"
-					doc:id="on-link-error"
-					type="ANY">
-					<logger doc:name="Log Link Exception"
-						doc:id="log-link-exception"
-						level="ERROR"
-						message="#['SALESFORCE_EXCEPTION | ContentDocumentLink creation failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
-				</on-error-propagate>
-			</error-handler>
-		</try>
+					<error-handler>
+						<on-error-propagate doc:name="On Link Create Error"
+							doc:id="on-link-error"
+							type="ANY">
+							<logger doc:name="Log Link Exception"
+								doc:id="log-link-exception"
+								level="ERROR"
+								message="#['SALESFORCE_EXCEPTION | ContentDocumentLink creation failed | errorType=' ++ (error.errorType.identifier default 'unknown') ++ ' | message=' ++ (error.description default 'no description')]" />
+						</on-error-propagate>
+					</error-handler>
+				</try>
 
-		<set-variable doc:name="Set ContentDocumentLinkId"
-			doc:id="set-link-id"
-			variableName="newContentDocumentLinkId"
-			value="#[vars.linkResult.items[0].id]" />
+				<set-variable doc:name="Set ContentDocumentLinkId"
+					doc:id="set-link-id"
+					variableName="newContentDocumentLinkId"
+					value="#[vars.linkResult.items[0].id]" />
 
-		<json-logger:logger
-			doc:name="Log Part Upload Complete"
-			doc:id="log-part-uploaded"
-			config-ref="JSON_Logger_Config"
-			message="Part upload completed"
-			tracePoint="FLOW"
-			priority="INFO">
-			<json-logger:content><![CDATA[#[output application/json
+				<json-logger:logger
+					doc:name="Log Part Upload Complete"
+					doc:id="log-part-uploaded"
+					config-ref="JSON_Logger_Config"
+					message="Part upload completed"
+					tracePoint="FLOW"
+					priority="INFO">
+					<json-logger:content><![CDATA[#[output application/json
 ---
 {
 	correlationId: vars.correlationId,
@@ -1385,7 +1393,7 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 	contentDocumentId: vars.newContentDocumentId,
 	contentDocumentLinkId: vars.newContentDocumentLinkId
 }]]]></json-logger:content>
-		</json-logger:logger>
+				</json-logger:logger>
 
 			</when>
 			<otherwise>
@@ -1437,6 +1445,8 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 						</on-error-continue>
 					</error-handler>
 				</try>
+
+				<!-- Call Agentforce after Data Cloud insertion (non-blocking) -->
 
 			</when>
 		</choice>
@@ -1499,12 +1509,11 @@ output multipart/form-data
 		<!-- Step 2: POST document to IDP using connector -->
 		<try doc:name="Try IDP POST" doc:id="try-idp-post">
 
-			<idp-medical-summarywith-schema-110:postdocumentactionexecution
+			<idp-medical-summarywith-schema-130:postdocumentactionexecution
 				doc:name="POST Document to IDP"
 				doc:id="post-idp-document"
 				config-ref="IDP_Medical_Summary_Config"
 				target="idpPostResponse" />
-
 			<logger doc:name="Log IDP POST Response"
 				doc:id="log-idp-post-response"
 				level="INFO"
@@ -1519,7 +1528,7 @@ output multipart/form-data
 			<error-handler>
 				<on-error-propagate doc:name="On IDP POST Error"
 					doc:id="on-idp-post-error"
-					type="IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:TIMEOUT,IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:CONNECTIVITY,IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:BAD_REQUEST,IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:UNAUTHORIZED,IDP-MEDICAL-SUMMARYWITH-SCHEMA-110:INTERNAL_SERVER_ERROR">
+					type="IDP-MEDICAL-SUMMARYWITH-SCHEMA-130:TIMEOUT,IDP-MEDICAL-SUMMARYWITH-SCHEMA-130:CONNECTIVITY,IDP-MEDICAL-SUMMARYWITH-SCHEMA-130:BAD_REQUEST,IDP-MEDICAL-SUMMARYWITH-SCHEMA-130:UNAUTHORIZED,IDP-MEDICAL-SUMMARYWITH-SCHEMA-130:INTERNAL_SERVER_ERROR">
 
 					<json-logger:logger
 						doc:name="Log IDP POST Error"
@@ -1580,14 +1589,13 @@ output application/java
 			doc:name="Poll IDP Results"
 			doc:id="poll-idp-results">
 
-			<idp-medical-summarywith-schema-110:getdocumentactionexecution
+			<idp-medical-summarywith-schema-130:getdocumentactionexecution
 				doc:name="GET IDP Execution Result"
 				doc:id="get-idp-result"
 				config-ref="IDP_Medical_Summary_Config"
 				execution-id="#[vars.idpExecutionId]"
 				value-only="true"
 				target="idpGetResponse" />
-
 			<set-variable doc:name="Set IDP Status"
 				doc:id="set-idp-poll-status"
 				variableName="idpStatus"
@@ -1787,28 +1795,27 @@ output application/java
 						<ee:set-variable variableName="mergedIdpData"><![CDATA[%dw 2.0
 output application/java
 
-// Helper function to merge text fields
-fun mergeText(results) =
-	(results map $.extractedData.text)
-		filter ($ != null)
-		joinBy "\n\n"
+var successResults = vars.allIdpResults.results filter $.status == "SUCCESS"
 
-// Helper function to merge structured data
-fun mergeStructuredData(results) =
-	(results map $.extractedData.structuredData)
-		filter ($ != null)
-		reduce ((item, accumulator = {}) -> accumulator ++ item)
+// Parse overallSummary.value JSON from each part and collect documents
+var allParsedSummaries = successResults map ((result) ->
+	do {
+		var raw = result.extractedData.fields.overallSummary.value default "{}"
+		---
+		read(raw, "application/json")
+	}
+) filter ($ != null)
 
-// Helper function to merge tables
-fun mergeTables(results) =
-	(results flatMap $.extractedData.tables)
-		filter ($ != null)
+// Combine all documents arrays from all parts
+var combinedDocuments = allParsedSummaries flatMap ($.documents default [])
 
-// Helper function to merge entities
-fun mergeEntities(results) =
-	(results flatMap $.extractedData.entities)
-		filter ($ != null)
-		distinctBy $.id
+// Combine metadata from all parts
+var combinedMetadata = {
+	totalFilesProcessed: sizeOf(successResults),
+	totalPages: sum(allParsedSummaries map ($.metadata.totalPages default 0)),
+	totalDocuments: sizeOf(combinedDocuments),
+	partCount: sizeOf(successResults)
+}
 
 ---
 {
@@ -1818,37 +1825,27 @@ fun mergeEntities(results) =
 	totalParts: vars.allIdpResults.totalParts,
 	mergedAt: now(),
 
-	// Merged extracted data
-	extractedData: {
-		// Merge all text content in order
-		fullText: mergeText(vars.allIdpResults.results),
+	// Combined overallSummary from all parts
+	combinedIdpSummary: {
+		documents: combinedDocuments,
+		metadata: combinedMetadata
+	},
 
-		// Merge structured data (key-value pairs)
-		structuredData: mergeStructuredData(vars.allIdpResults.results),
-
-		// Merge tables from all parts
-		tables: mergeTables(vars.allIdpResults.results),
-
-		// Merge entities (deduplicated)
-		entities: mergeEntities(vars.allIdpResults.results),
-
-		// Keep individual part results for reference
-		partResults: vars.allIdpResults.results map {
-			partNumber: $.partNumber,
-			contentDocumentId: $.contentDocumentId,
-			status: $.status,
-			pageRange: ($.extractedData.pageStart default 0) ++ "-" ++ ($.extractedData.pageEnd default 0)
-		}
+	// Keep individual part results for reference
+	partResults: vars.allIdpResults.results map {
+		partNumber: $.partNumber,
+		contentDocumentId: $.contentDocumentId,
+		status: $.status,
+		documentName: $.extractedData.documentName default ""
 	},
 
 	// Summary statistics
 	summary: {
 		totalPartsProcessed: vars.allIdpResults.processedParts,
-		successfulParts: sizeOf(vars.allIdpResults.results filter $.status == "SUCCESS"),
+		successfulParts: sizeOf(successResults),
 		failedParts: sizeOf(vars.allIdpResults.results filter $.status == "FAILED"),
-		totalTextLength: sizeOf(mergeText(vars.allIdpResults.results)),
-		totalEntities: sizeOf(mergeEntities(vars.allIdpResults.results)),
-		totalTables: sizeOf(mergeTables(vars.allIdpResults.results))
+		totalDocuments: sizeOf(combinedDocuments),
+		totalPages: sum(allParsedSummaries map ($.metadata.totalPages default 0))
 	}
 }]]></ee:set-variable>
 					</ee:variables>
@@ -1867,6 +1864,7 @@ fun mergeEntities(results) =
 	correlationId: vars.correlationId,
 	claimId: vars.claimId,
 	totalParts: vars.mergedIdpData.totalParts,
+	totalDocuments: vars.mergedIdpData.summary.totalDocuments,
 	summary: vars.mergedIdpData.summary
 }]]]></json-logger:content>
 				</json-logger:logger>
@@ -1930,25 +1928,41 @@ output application/java
 ---
 vars.correlationId ++ "_" ++ (vars.partNumber as String default "0")]]></ee:set-variable>
 
+				<ee:set-variable variableName="dcOverallSummaryJson"><![CDATA[%dw 2.0
+output application/java
+---
+vars.idpExtractedData.extractedData.fields.overallSummary.value default ""]]></ee:set-variable>
+
+				<ee:set-variable variableName="dcParsedSummary"><![CDATA[%dw 2.0
+output application/java
+var raw = vars.idpExtractedData.extractedData.fields.overallSummary.value default "{}"
+---
+read(raw, "application/json")]]></ee:set-variable>
+
 				<ee:set-variable variableName="dcExtractedFields"><![CDATA[%dw 2.0
 output application/java
-var fields = vars.idpExtractedData.extractedData.fields default {}
+var raw = vars.idpExtractedData.extractedData.fields.overallSummary.value default "{}"
+var parsed = read(raw, "application/json")
+var docs = parsed.documents default []
+var fieldKeys = ["documentType", "patientName", "dateOfBirth", "provider",
+	"referringDoctor", "readingDoctor", "dateOfService", "chiefComplaint",
+	"pastMedicalHistory", "treatmentPlan", "diagnosis", "nextOfficeVisit",
+	"workStatus", "conditionProgression", "summary"]
 ---
-if (fields != null and sizeOf(entriesOf(fields)) > 0)
-	entriesOf(fields)
-		filter ((entry) -> entry.key != "PromptInstruction")
-		map ((entry, idx) -> {
-			key: entry.key,
-			value: entry.value.value default ""
-		})
-else
-	[]]]></ee:set-variable>
+docs flatMap ((doc, docIdx) ->
+	fieldKeys map ((fieldKey) -> {
+		key: "doc_" ++ (doc.sequenceNumber default (docIdx + 1)) ++ "." ++ fieldKey,
+		value: doc[fieldKey] as String default ""
+	}) filter ($.value != "" and $.value != "null")
+)]]></ee:set-variable>
 
 				<ee:set-variable variableName="dcDocumentType"><![CDATA[%dw 2.0
 output application/java
+var raw = vars.idpExtractedData.extractedData.fields.overallSummary.value default "{}"
+var parsed = read(raw, "application/json")
+var firstDoc = (parsed.documents default [])[0] default {}
 ---
-vars.idpExtractedData.extractedData.fields.Document_Type.value
-	default "Medical Summary"]]></ee:set-variable>
+firstDoc.documentType default "Medical Summary"]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 
@@ -1988,13 +2002,11 @@ else "High"]]></ee:set-variable>
 				<ee:message>
 					<ee:set-payload><![CDATA[%dw 2.0
 output application/json
-var fieldsSummary = (vars.dcExtractedFields default [])
-	map ((f) -> f.key ++ ": " ++ (f.value as String default ""))
-	joinBy ", "
 ---
 {
 	data: [{
 		Document_Id: vars.dcDocumentId,
+		Claim_Id: vars.claimId default "",
 		Correlation_Id: vars.correlationId,
 		Document_Type: vars.dcDocumentType,
 		File_Name: vars.idpExtractedData.extractedData.documentName
@@ -2002,7 +2014,7 @@ var fieldsSummary = (vars.dcExtractedFields default [])
 		Total_Pages: vars.currentPart.pageCount as Number default 0,
 		Processing_Status: vars.idpExtractedData.extractedData.status default "UNKNOWN",
 		Confidence_Score: vars.dcAvgConfidence as Number default 0,
-		AI_Summary: fieldsSummary default "",
+		AI_Summary: vars.dcOverallSummaryJson default "",
 		Risk_Level: vars.dcRiskLevel,
 		Processed_At: now() as String {format: "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"},
 		Account_Id: vars.accountId default ""
@@ -2066,6 +2078,7 @@ output application/json
 	data: vars.dcExtractedFields map ((field, idx) -> {
 		Field_Id: vars.dcDocumentId ++ "_" ++ (idx as String),
 		Document_Id: vars.dcDocumentId,
+		Claim_Id: vars.claimId default "",
 		Field_Name: field.key as String default "",
 		Field_Value: field.value as String default "",
 		Confidence: vars.dcAvgConfidence as Number default 0.90,
@@ -2142,5 +2155,10 @@ output application/json
 		</json-logger:logger>
 
 	</sub-flow>
+	<!-- ============================================== -->
+	<!-- AGENTFORCE CONVERSATION SUBFLOW                -->
+	<!-- Starts an Agent conversation, sends IDP        -->
+	<!-- extracted data as a message, and ends session   -->
+	<!-- ============================================== -->
 
 </mule>
