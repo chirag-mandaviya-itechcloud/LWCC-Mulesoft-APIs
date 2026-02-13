@@ -709,6 +709,32 @@ output application/json
 					level="INFO"
 					message="#[output text/plain --- 'UPLOAD_ALL_COMPLETE | uploadedParts=' ++ (sizeOf(vars.uploadedParts) as String) ++ ' | status=COMPLETED']" />
 
+				<!-- Re-build dcOverallSummaryJson from scatter-gather Array into single merged JSON string -->
+				<ee:transform doc:name="Rebuild dcOverallSummaryJson from Array"
+					doc:id="rebuild-dc-overall-summary">
+					<ee:variables>
+						<ee:set-variable variableName="dcOverallSummaryJson"><![CDATA[%dw 2.0
+output application/java
+---
+if (vars.dcOverallSummaryJson is Array)
+	do {
+		// Filter out empty/null entries from scatter-gather Array
+		var validEntries = (vars.dcOverallSummaryJson default []) filter ((item) -> item != null and item != "")
+		// Parse each JSON string and collect all documents arrays
+		var allDocuments = validEntries flatMap ((entry) ->
+			(read(entry, "application/json")).documents default []
+		)
+		---
+		if (sizeOf(allDocuments) > 0)
+			write({ documents: allDocuments }, "application/json")
+		else null
+	}
+else
+	// Already a String (no scatter-gather corruption), use as-is
+	vars.dcOverallSummaryJson]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+
 				<!-- Send callback to Salesforce Apex endpoint after all parts processed -->
 				<choice doc:name="Check Callback Enabled">
 					<when expression="#[p('salesforce.callback.enabled') == 'true' or p('salesforce.callback.enabled') == true]">
