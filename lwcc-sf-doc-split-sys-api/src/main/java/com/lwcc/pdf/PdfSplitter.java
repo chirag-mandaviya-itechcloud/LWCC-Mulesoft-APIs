@@ -21,7 +21,8 @@ import java.util.Map;
 
 /**
  * PDF Splitter utility for splitting large PDFs into smaller parts.
- * Each part is kept under the specified maximum size limit (default 10MB).
+ * Each part is kept under the specified maximum size limit (default 10MB)
+ * and maximum page count limit (default 49 pages).
  */
 public class PdfSplitter {
 
@@ -29,6 +30,9 @@ public class PdfSplitter {
 
     // Default max size per part: 10 MB
     private static final long DEFAULT_MAX_PART_SIZE_BYTES = 10 * 1024 * 1024;
+
+    // Default max pages per part: 49
+    private static final int DEFAULT_MAX_PAGES_PER_PART = 49;
 
     // Maximum number of parts allowed
     private static final int MAX_PARTS = 5;
@@ -214,14 +218,15 @@ public class PdfSplitter {
     }
 
     /**
-     * Pre-computes split boundaries based on estimated page sizes.
+     * Pre-computes split boundaries based on estimated page sizes and max pages per part.
      * This avoids the need to serialize after each page addition.
      *
      * @param sourceDoc The source PDF document
      * @param maxPartSizeBytes Maximum size per part
+     * @param maxPagesPerPart Maximum pages per part
      * @return List of page ranges for splitting
      */
-    private static List<PageRange> computeSplitRanges(PDDocument sourceDoc, long maxPartSizeBytes) {
+    private static List<PageRange> computeSplitRanges(PDDocument sourceDoc, long maxPartSizeBytes, int maxPagesPerPart) {
         List<PageRange> ranges = new ArrayList<>();
         int totalPages = sourceDoc.getNumberOfPages();
 
@@ -234,6 +239,7 @@ public class PdfSplitter {
 
         long currentSize = docOverhead;
         int rangeStart = 0;
+        int currentPageCount = 0;
 
         for (int i = 0; i < totalPages; i++) {
             PDPage page = sourceDoc.getPage(i);
@@ -241,27 +247,33 @@ public class PdfSplitter {
 
             LOGGER.debug("Page {}: estimated size = {} KB", i + 1, pageSize / 1024);
 
-            // Check if adding this page would exceed the target
-            if (currentSize + pageSize > targetSize && i > rangeStart) {
+            // Check if adding this page would exceed the size target OR page limit
+            boolean wouldExceedSize = currentSize + pageSize > targetSize && i > rangeStart;
+            boolean wouldExceedPages = currentPageCount >= maxPagesPerPart;
+
+            if (wouldExceedSize || wouldExceedPages) {
                 // Save current range (up to previous page)
                 ranges.add(new PageRange(rangeStart, i - 1, currentSize));
-                LOGGER.info("Planned range: pages {}-{}, estimated {} KB",
-                        rangeStart + 1, i, currentSize / 1024);
+                LOGGER.info("Planned range: pages {}-{}, estimated {} KB, {} pages (reason: {})",
+                        rangeStart + 1, i, currentSize / 1024, currentPageCount,
+                        wouldExceedPages ? "page limit" : "size limit");
 
                 // Start new range with current page
                 rangeStart = i;
                 currentSize = docOverhead + pageSize;
+                currentPageCount = 1;
             } else {
                 // Add page to current range
                 currentSize += pageSize;
+                currentPageCount++;
             }
         }
 
         // Add final range
         if (rangeStart < totalPages) {
             ranges.add(new PageRange(rangeStart, totalPages - 1, currentSize));
-            LOGGER.info("Planned range: pages {}-{}, estimated {} KB",
-                    rangeStart + 1, totalPages, currentSize / 1024);
+            LOGGER.info("Planned range: pages {}-{}, estimated {} KB, {} pages",
+                    rangeStart + 1, totalPages, currentSize / 1024, totalPages - rangeStart);
         }
 
         return ranges;
@@ -288,7 +300,8 @@ public class PdfSplitter {
     }
 
     /**
-     * Splits a PDF into multiple parts based on the specified maximum part size.
+     * Splits a PDF into multiple parts based on the specified maximum part size
+     * and maximum pages per part.
      * OPTIMIZED VERSION: Uses page size estimation to pre-compute split boundaries,
      * then creates only the final parts. This drastically reduces serialization operations.
      *
@@ -297,22 +310,27 @@ public class PdfSplitter {
      * Constraints:
      * - Maximum 5 parts (MAX_PARTS)
      * - Each part strictly under maxPartSizeBytes (default 10MB)
+     * - Each part has at most maxPagesPerPart pages (default 49)
      *
      * @param pdfBytes The PDF file as byte array
      * @param originalFileName Original file name (without extension)
      * @param maxPartSizeBytes Maximum size per part in bytes
+     * @param maxPagesPerPart Maximum pages per part (null for default 49)
      * @return List of maps containing part info and byte arrays
      */
-    public static List<Map<String, Object>> splitPdf(byte[] pdfBytes, String originalFileName, Long maxPartSizeBytes) throws IOException {
+    public static List<Map<String, Object>> splitPdf(byte[] pdfBytes, String originalFileName, Long maxPartSizeBytes, Integer maxPagesPerPart) throws IOException {
         if (maxPartSizeBytes == null || maxPartSizeBytes <= 0) {
             maxPartSizeBytes = DEFAULT_MAX_PART_SIZE_BYTES;
         }
+        if (maxPagesPerPart == null || maxPagesPerPart <= 0) {
+            maxPagesPerPart = DEFAULT_MAX_PAGES_PER_PART;
+        }
 
         // VERSION MARKER - confirms new code is running
-        LOGGER.info("=== PdfSplitter v4.0 - OPTIMIZED PRE-COMPUTATION ===");
+        LOGGER.info("=== PdfSplitter v5.0 - SIZE + PAGE LIMIT SPLIT ===");
 
-        LOGGER.info("Split config: limit={} MB",
-                String.format("%.2f", maxPartSizeBytes / 1048576.0));
+        LOGGER.info("Split config: sizeLimit={} MB, maxPagesPerPart={}",
+                String.format("%.2f", maxPartSizeBytes / 1048576.0), maxPagesPerPart);
 
         List<Map<String, Object>> parts = new ArrayList<>();
 
@@ -343,24 +361,29 @@ public class PdfSplitter {
             LOGGER.info("Source PDF: {} pages, {} MB", totalPages,
                     String.format("%.2f", totalSize / 1048576.0));
 
-            // Early return for small files
-            if (totalSize <= maxPartSizeBytes) {
-                LOGGER.info("PDF within limit, returning as single part");
+            // Early return for small files that are also within page limit
+            if (totalSize <= maxPartSizeBytes && totalPages <= maxPagesPerPart) {
+                LOGGER.info("PDF within size and page limits, returning as single part");
                 parts.add(createSinglePart(pdfBytes, totalPages, originalFileName));
                 return parts;
             }
 
-            // Cannot split single-page PDF
-            if (totalPages == 1) {
-                throw new IOException("Single-page PDF exceeds limit: " +
+            // Cannot split single-page PDF that exceeds size limit
+            if (totalPages == 1 && totalSize > maxPartSizeBytes) {
+                throw new IOException("Single-page PDF exceeds size limit: " +
                         String.format("%.2f", totalSize / 1048576.0) + " MB");
             }
 
-            // PHASE 1: Pre-compute split ranges based on estimation
-            LOGGER.info("PHASE 1: Computing split ranges using page size estimation...");
+            LOGGER.info("Split required: size={} MB (limit={} MB), pages={} (limit={})",
+                    String.format("%.2f", totalSize / 1048576.0),
+                    String.format("%.2f", maxPartSizeBytes / 1048576.0),
+                    totalPages, maxPagesPerPart);
+
+            // PHASE 1: Pre-compute split ranges based on estimation and page limit
+            LOGGER.info("PHASE 1: Computing split ranges using page size estimation + page limit...");
             long estimationStart = System.currentTimeMillis();
 
-            List<PageRange> ranges = computeSplitRanges(sourceDoc, maxPartSizeBytes);
+            List<PageRange> ranges = computeSplitRanges(sourceDoc, maxPartSizeBytes, maxPagesPerPart);
 
             long estimationTime = System.currentTimeMillis() - estimationStart;
             LOGGER.info("Pre-computation complete in {} ms, {} ranges planned", estimationTime, ranges.size());
@@ -408,10 +431,9 @@ public class PdfSplitter {
                             LOGGER.info("Splitting range {}-{} into smaller chunks...",
                                     range.start + 1, range.end + 1);
 
-                            // Binary search approach to find exact split point
                             List<Map<String, Object>> subParts = splitRangeIncremental(
                                     sourceDoc, range.start, range.end, maxPartSizeBytes,
-                                    originalFileName, partNumber);
+                                    maxPagesPerPart, originalFileName, partNumber);
 
                             validatedParts.addAll(subParts);
                             partNumber += subParts.size();
@@ -454,54 +476,67 @@ public class PdfSplitter {
 
         // ========== FINAL SAFEGUARD ==========
         // This is the LAST line of defense - verify EVERY part before returning
-        LOGGER.info("=== FINAL SAFEGUARD: Checking {} parts... ===", parts.size());
+        LOGGER.info("=== FINAL SAFEGUARD: Checking {} parts (size <= {} MB, pages <= {})... ===",
+                parts.size(), String.format("%.2f", maxPartSizeBytes / 1048576.0), maxPagesPerPart);
         for (Map<String, Object> part : parts) {
             byte[] partBytes = (byte[]) part.get("pdfBytes");
             long actualSize = partBytes.length;
             int partNum = (int) part.get("partNumber");
+            int partPageCount = (int) part.get("pageCount");
 
-            LOGGER.info("SAFEGUARD CHECK: Part {} actual size = {} bytes ({} MB)",
-                    partNum, actualSize, String.format("%.2f", actualSize / 1048576.0));
+            LOGGER.info("SAFEGUARD CHECK: Part {} size={} MB, pages={}",
+                    partNum, String.format("%.2f", actualSize / 1048576.0), partPageCount);
 
             if (actualSize > maxPartSizeBytes) {
-                LOGGER.error("!!! SAFEGUARD FAILED !!! Part {} = {} MB > {} MB limit",
+                LOGGER.error("!!! SAFEGUARD FAILED !!! Part {} = {} MB > {} MB size limit",
                         partNum,
                         String.format("%.2f", actualSize / 1048576.0),
                         String.format("%.2f", maxPartSizeBytes / 1048576.0));
                 throw new IOException("SAFEGUARD FAILED: Part " + partNum +
                         " is " + String.format("%.2f", actualSize / 1048576.0) +
-                        " MB, exceeds " + String.format("%.2f", maxPartSizeBytes / 1048576.0) + " MB limit");
+                        " MB, exceeds " + String.format("%.2f", maxPartSizeBytes / 1048576.0) + " MB size limit");
             }
 
-            LOGGER.info("SAFEGUARD PASSED: Part {} = {} MB <= {} MB",
-                    partNum,
-                    String.format("%.2f", actualSize / 1048576.0),
-                    String.format("%.2f", maxPartSizeBytes / 1048576.0));
+            if (partPageCount > maxPagesPerPart) {
+                LOGGER.error("!!! SAFEGUARD FAILED !!! Part {} has {} pages > {} page limit",
+                        partNum, partPageCount, maxPagesPerPart);
+                throw new IOException("SAFEGUARD FAILED: Part " + partNum +
+                        " has " + partPageCount + " pages, exceeds " + maxPagesPerPart + " page limit");
+            }
+
+            LOGGER.info("SAFEGUARD PASSED: Part {} size={} MB, pages={}",
+                    partNum, String.format("%.2f", actualSize / 1048576.0), partPageCount);
         }
         // ========== END SAFEGUARD ==========
 
-        LOGGER.info("Split complete: {} parts, all VERIFIED <= {} MB",
-                parts.size(), String.format("%.2f", maxPartSizeBytes / 1048576.0));
+        LOGGER.info("Split complete: {} parts, all VERIFIED (size <= {} MB, pages <= {})",
+                parts.size(), String.format("%.2f", maxPartSizeBytes / 1048576.0), maxPagesPerPart);
         return parts;
     }
 
     /**
-     * Splits a PDF file into multiple parts based on the specified maximum part size.
+     * Splits a PDF file into multiple parts based on the specified maximum part size
+     * and maximum pages per part.
      * OPTIMIZED VERSION for streaming: Accepts File instead of byte[] to reduce memory usage.
      *
      * @param pdfFile The PDF file to split
      * @param originalFileName Original file name (without extension)
      * @param maxPartSizeBytes Maximum size per part in bytes
+     * @param maxPagesPerPart Maximum pages per part (null for default 49)
      * @return List of maps containing part info and byte arrays
      */
-    public static List<Map<String, Object>> splitPdf(File pdfFile, String originalFileName, Long maxPartSizeBytes) throws IOException {
+    public static List<Map<String, Object>> splitPdf(File pdfFile, String originalFileName, Long maxPartSizeBytes, Integer maxPagesPerPart) throws IOException {
         if (maxPartSizeBytes == null || maxPartSizeBytes <= 0) {
             maxPartSizeBytes = DEFAULT_MAX_PART_SIZE_BYTES;
         }
+        if (maxPagesPerPart == null || maxPagesPerPart <= 0) {
+            maxPagesPerPart = DEFAULT_MAX_PAGES_PER_PART;
+        }
 
-        LOGGER.info("=== PdfSplitter v4.0 - OPTIMIZED PRE-COMPUTATION (File-based) ===");
-        LOGGER.info("Split config: limit={} MB, source file size={} MB",
+        LOGGER.info("=== PdfSplitter v5.0 - SIZE + PAGE LIMIT SPLIT (File-based) ===");
+        LOGGER.info("Split config: sizeLimit={} MB, maxPagesPerPart={}, source file size={} MB",
                 String.format("%.2f", maxPartSizeBytes / 1048576.0),
+                maxPagesPerPart,
                 String.format("%.2f", pdfFile.length() / 1048576.0));
 
         List<Map<String, Object>> parts = new ArrayList<>();
@@ -540,26 +575,30 @@ public class PdfSplitter {
             LOGGER.info("Source PDF: {} pages, {} MB", totalPages,
                     String.format("%.2f", totalSize / 1048576.0));
 
-            // Early return for small files
-            if (totalSize <= maxPartSizeBytes) {
-                LOGGER.info("PDF within limit, returning as single part");
-                // Load bytes only for the single part
+            // Early return for small files that are also within page limit
+            if (totalSize <= maxPartSizeBytes && totalPages <= maxPagesPerPart) {
+                LOGGER.info("PDF within size and page limits, returning as single part");
                 byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
                 parts.add(createSinglePart(pdfBytes, totalPages, originalFileName));
                 return parts;
             }
 
-            // Cannot split single-page PDF
-            if (totalPages == 1) {
-                throw new IOException("Single-page PDF exceeds limit: " +
+            // Cannot split single-page PDF that exceeds size limit
+            if (totalPages == 1 && totalSize > maxPartSizeBytes) {
+                throw new IOException("Single-page PDF exceeds size limit: " +
                         String.format("%.2f", totalSize / 1048576.0) + " MB");
             }
 
+            LOGGER.info("Split required: size={} MB (limit={} MB), pages={} (limit={})",
+                    String.format("%.2f", totalSize / 1048576.0),
+                    String.format("%.2f", maxPartSizeBytes / 1048576.0),
+                    totalPages, maxPagesPerPart);
+
             // PHASE 1: Pre-compute split ranges
-            LOGGER.info("PHASE 1: Computing split ranges using page size estimation...");
+            LOGGER.info("PHASE 1: Computing split ranges using page size estimation + page limit...");
             long estimationStart = System.currentTimeMillis();
 
-            List<PageRange> ranges = computeSplitRanges(sourceDoc, maxPartSizeBytes);
+            List<PageRange> ranges = computeSplitRanges(sourceDoc, maxPartSizeBytes, maxPagesPerPart);
 
             long estimationTime = System.currentTimeMillis() - estimationStart;
             LOGGER.info("Pre-computation complete in {} ms, {} ranges planned", estimationTime, ranges.size());
@@ -594,7 +633,7 @@ public class PdfSplitter {
                         if (range.getPageCount() > 1) {
                             List<Map<String, Object>> subParts = splitRangeIncremental(
                                     sourceDoc, range.start, range.end, maxPartSizeBytes,
-                                    originalFileName, partNumber);
+                                    maxPagesPerPart, originalFileName, partNumber);
                             validatedParts.addAll(subParts);
                             partNumber += subParts.size();
                             continue;
@@ -630,20 +669,27 @@ public class PdfSplitter {
         }
 
         // FINAL SAFEGUARD
-        LOGGER.info("=== FINAL SAFEGUARD: Checking {} parts... ===", parts.size());
+        LOGGER.info("=== FINAL SAFEGUARD: Checking {} parts (size <= {} MB, pages <= {})... ===",
+                parts.size(), String.format("%.2f", maxPartSizeBytes / 1048576.0), maxPagesPerPart);
         for (Map<String, Object> part : parts) {
             byte[] partBytes = (byte[]) part.get("pdfBytes");
             long actualSize = partBytes.length;
             int partNum = (int) part.get("partNumber");
+            int partPageCount = (int) part.get("pageCount");
 
             if (actualSize > maxPartSizeBytes) {
                 throw new IOException("SAFEGUARD FAILED: Part " + partNum +
                         " is " + String.format("%.2f", actualSize / 1048576.0) +
-                        " MB, exceeds " + String.format("%.2f", maxPartSizeBytes / 1048576.0) + " MB limit");
+                        " MB, exceeds " + String.format("%.2f", maxPartSizeBytes / 1048576.0) + " MB size limit");
+            }
+            if (partPageCount > maxPagesPerPart) {
+                throw new IOException("SAFEGUARD FAILED: Part " + partNum +
+                        " has " + partPageCount + " pages, exceeds " + maxPagesPerPart + " page limit");
             }
         }
 
-        LOGGER.info("Split complete: {} parts, all VERIFIED", parts.size());
+        LOGGER.info("Split complete: {} parts, all VERIFIED (size <= {} MB, pages <= {})",
+                parts.size(), String.format("%.2f", maxPartSizeBytes / 1048576.0), maxPagesPerPart);
         return parts;
     }
 
@@ -655,15 +701,17 @@ public class PdfSplitter {
      * @param rangeStart Start page index (0-based)
      * @param rangeEnd End page index (0-based, inclusive)
      * @param maxPartSizeBytes Size limit per part
+     * @param maxPagesPerPart Maximum pages per part
      * @param originalFileName Original file name
      * @param startPartNumber Starting part number
      * @return List of parts created from this range
      */
     private static List<Map<String, Object>> splitRangeIncremental(
             PDDocument sourceDoc, int rangeStart, int rangeEnd, long maxPartSizeBytes,
-            String originalFileName, int startPartNumber) throws IOException {
+            int maxPagesPerPart, String originalFileName, int startPartNumber) throws IOException {
 
-        LOGGER.info("Using incremental split for pages {}-{}", rangeStart + 1, rangeEnd + 1);
+        LOGGER.info("Using incremental split for pages {}-{} (maxPages={})",
+                rangeStart + 1, rangeEnd + 1, maxPagesPerPart);
 
         List<Map<String, Object>> parts = new ArrayList<>();
         final long effectiveMaxSize = (long) (maxPartSizeBytes * 0.90);
@@ -684,7 +732,9 @@ public class PdfSplitter {
                 long currentSize = currentBytes.length;
 
                 boolean isLastPageInRange = (pageIndex == rangeEnd);
-                boolean exceedsLimit = currentSize > effectiveMaxSize;
+                boolean exceedsSize = currentSize > effectiveMaxSize;
+                boolean exceedsPages = currentPart.getNumberOfPages() > maxPagesPerPart;
+                boolean exceedsLimit = exceedsSize || exceedsPages;
 
                 if (exceedsLimit && currentPart.getNumberOfPages() > 1) {
                     // Save previous state

@@ -610,10 +610,16 @@ sizeOf(valuesOf(payload) map $.payload filter ($ != null))]]></ee:set-variable>
 					<when
 						expression="#[p('idp.enabled') == 'true' and p('idp.aggregation.enabled') == 'true']">
 
+						<!-- Re-set aggregationKey here (scatter-gather doesn't propagate vars from parallel routes) -->
+						<set-variable doc:name="Set Aggregation Key for Merge"
+							doc:id="set-aggregation-key-merge"
+							variableName="aggregationKey"
+							value="#[vars.claimId ++ '|' ++ vars.contentDocumentId ++ '|' ++ vars.correlationId]" />
+
 						<logger doc:name="Log IDP Merge Wait"
 							doc:id="log-idp-merge-wait"
 							level="INFO"
-							message="#['IDP_MERGE_WAIT | Waiting for all IDP extractions to complete']" />
+							message="#['IDP_MERGE_WAIT | aggregationKey=' ++ vars.aggregationKey ++ ' | Waiting for all IDP extractions to complete']" />
 
 						<!-- Wait and retry until all parts are processed -->
 						<until-successful maxRetries="10" millisBetweenRetries="2000"
@@ -1107,16 +1113,16 @@ PdfSplitter::getPageCount(vars.pdfBytes)]]></ee:set-variable>
 			variableName="maxPartSizeBytes"
 			value="#[(vars.maxPartSizeMb default p('split.maxPartSizeMb') as Number) * 1024 * 1024]" />
 
-		<logger doc:name="Log Max Part Size"
-			doc:id="log-max-part"
-			level="INFO"
-			message="#['SPLIT_CONFIG | maxPartSizeBytes=' ++ (vars.maxPartSizeBytes as String) ++ ' (' ++ ((vars.maxPartSizeBytes / 1048576) as String) ++ ' MB) | maxPagesPerPart=' ++ (vars.maxPagesPerPart as String)]" />
-
 		<!-- Set max pages per part from config -->
 		<set-variable doc:name="Set max pages per part"
 			doc:id="set-max-pages-per-part"
 			variableName="maxPagesPerPart"
 			value="#[p('split.maxPagesPerPart') as Number]" />
+
+		<logger doc:name="Log Max Part Size"
+			doc:id="log-max-part"
+			level="INFO"
+			message="#['SPLIT_CONFIG | maxPartSizeBytes=' ++ (vars.maxPartSizeBytes as String) ++ ' (' ++ ((vars.maxPartSizeBytes / 1048576) as String) ++ ' MB) | maxPagesPerPart=' ++ (vars.maxPagesPerPart as String)]" />
 
 		<!-- Split the PDF using Java class -->
 		<try doc:name="Try Split PDF"
@@ -1129,7 +1135,7 @@ PdfSplitter::getPageCount(vars.pdfBytes)]]></ee:set-variable>
 output application/java
 import java!com::lwcc::pdf::PdfSplitter
 ---
-PdfSplitter::splitPdf(vars.pdfBytes, vars.contentVersion.Title, vars.maxPartSizeBytes)]]></ee:set-variable>
+PdfSplitter::splitPdf(vars.pdfBytes, vars.contentVersion.Title, vars.maxPartSizeBytes, vars.maxPagesPerPart)]]></ee:set-variable>
 				</ee:variables>
 			</ee:transform>
 
