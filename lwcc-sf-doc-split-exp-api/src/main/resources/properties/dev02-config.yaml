@@ -17,5 +17,5 @@ api:
 
 # System API Connection
 sysapi:
-  host: "lwcc-sf-doc-split-sys-api-dev02-wtq68e.vhj0p8.usa-e1.cloudhub.io"
+  host: "lwcc-sf-idp-doc-split-sys-api-dev02-wtq68e.vhj0p8.usa-e1.cloudhub.io"
   port: "443"

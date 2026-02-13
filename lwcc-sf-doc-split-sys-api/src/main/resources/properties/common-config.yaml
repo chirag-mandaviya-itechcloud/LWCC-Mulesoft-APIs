@@ -52,9 +52,10 @@ job:
 
 # PDF Split Configuration
 split:
-  maxPartSizeMb: "13"
+  maxPartSizeMb: "7.5"
   maxParts: "5"
-  defaultPartSizeMb: "13"
+  maxPagesPerPart: "49"
+  defaultPartSizeMb: "7.5"
   defaultNamingPattern: "{originalName}_Part{partNumber}"
   streamingThresholdMb: "50"
   tempDirectory: "/tmp/pdf-split"
@@ -94,8 +95,8 @@ idp:
   enabled: "true"
   region: "us-east-1"
   timeout: "180000"  # 3 minutes per document (connector response timeout)
-  maxRetries: "10"   # Max polling retries for GET execution result
-  retryDelay: "5000" # 5 seconds between polling retries
+  maxRetries: "20"   # Max poll attempts in foreach loop for GET execution result
+  retryDelay: "20000" # Delay (ms) between poll attempts
   oauth2:
     tokenUrl: "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token"
   aggregation:

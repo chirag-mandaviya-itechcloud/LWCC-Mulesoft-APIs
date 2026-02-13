@@ -1051,7 +1051,7 @@ PdfCompressor::compressPdf(vars.pdfBytes, p('compression.level') default 'maximu
 		<logger doc:name="Log Split Start"
 			doc:id="log-split-start"
 			level="INFO"
-			message="#['SPLIT_START | maxPartSizeMb=' ++ (vars.maxPartSizeMb default p('split.maxPartSizeMb')) as String]" />
+			message="#['SPLIT_START | maxPartSizeMb=' ++ (vars.maxPartSizeMb default p('split.maxPartSizeMb')) as String ++ ' | maxPagesPerPart=' ++ p('split.maxPagesPerPart')]" />
 
 		<!-- Validate PDF using Java -->
 		<ee:transform doc:name="Validate PDF"
@@ -1110,7 +1110,13 @@ PdfSplitter::getPageCount(vars.pdfBytes)]]></ee:set-variable>
 		<logger doc:name="Log Max Part Size"
 			doc:id="log-max-part"
 			level="INFO"
-			message="#['SPLIT_CONFIG | maxPartSizeBytes=' ++ (vars.maxPartSizeBytes as String) ++ ' (' ++ ((vars.maxPartSizeBytes / 1048576) as String) ++ ' MB)']" />
+			message="#['SPLIT_CONFIG | maxPartSizeBytes=' ++ (vars.maxPartSizeBytes as String) ++ ' (' ++ ((vars.maxPartSizeBytes / 1048576) as String) ++ ' MB) | maxPagesPerPart=' ++ (vars.maxPagesPerPart as String)]" />
+
+		<!-- Set max pages per part from config -->
+		<set-variable doc:name="Set max pages per part"
+			doc:id="set-max-pages-per-part"
+			variableName="maxPagesPerPart"
+			value="#[p('split.maxPagesPerPart') as Number]" />
 
 		<!-- Split the PDF using Java class -->
 		<try doc:name="Try Split PDF"
@@ -1470,7 +1476,9 @@ toBase64(vars.partContent as Binary)]]></ee:set-variable>
 
 	<!-- ============================================== -->
 	<!-- CALL IDP FOR DOCUMENT EXTRACTION SUBFLOW       -->
-	<!-- Uses IDP Connector (POST doc + GET results)    -->
+	<!-- Uses IDP Connector (POST doc + poll GET)       -->
+	<!-- Polls with foreach loop, breaks on terminal    -->
+	<!-- status (SUCCEEDED/FAILED/MANUAL_VALIDATION)    -->
 	<!-- OAuth2 is handled automatically by connector   -->
 	<!-- ============================================== -->
 	<sub-flow name="call-idp-extraction-subflow"
@@ -1587,61 +1595,61 @@ output application/java
 			</error-handler>
 		</try>
 
-		<!-- Step 3: Poll for IDP results using GET execution -->
-		<logger doc:name="Log IDP Polling Start"
-			doc:id="log-idp-polling-start"
+		<!-- Step 3: Poll IDP status using a loop -->
+		<logger doc:name="Log IDP Poll Start"
+			doc:id="log-idp-poll-start"
 			level="INFO"
-			message="#['IDP_POLL_START | executionId=' ++ vars.idpExecutionId ++ ' | Polling for results...']" />
+			message="#[output application/java --- 'IDP_POLL_START | executionId=' ++ (vars.idpExecutionId as String) ++ ' | maxRetries=' ++ p('idp.maxRetries')]" />
 
-		<set-variable doc:name="Init IDP Status"
-			doc:id="init-idp-status"
-			variableName="idpStatus"
-			value="IN_PROGRESS" />
+		<!-- Initialize polling control variables -->
+		<set-variable doc:name="Set Poll Done Flag"
+			doc:id="set-poll-done-flag"
+			variableName="idpPollDone"
+			value="#[false]" />
 
-		<!-- Poll until status is no longer IN_PROGRESS -->
-		<until-successful maxRetries="${idp.maxRetries}"
-			millisBetweenRetries="${idp.retryDelay}"
-			doc:name="Poll IDP Results"
-			doc:id="poll-idp-results">
+		<set-variable doc:name="Set Poll Attempts Range"
+			doc:id="set-poll-attempts-range"
+			variableName="pollAttempts"
+			value="#[1 to (p('idp.maxRetries') as Number)]" />
 
-			<idp-medical-summarywith-schema-130:getdocumentactionexecution
-				doc:name="GET IDP Execution Result"
-				doc:id="get-idp-result"
-				config-ref="IDP_Medical_Summary_Config"
-				execution-id="#[vars.idpExecutionId]"
-				value-only="true"
-				target="idpGetResponse" />
-			<set-variable doc:name="Set IDP Status"
-				doc:id="set-idp-poll-status"
-				variableName="idpStatus"
-				value="#[vars.idpGetResponse.status]" />
+		<!-- Loop: poll IDP status, break on terminal status -->
+		<foreach doc:name="Poll IDP Status Loop"
+			doc:id="poll-idp-status-loop"
+			collection="#[vars.pollAttempts]">
 
-			<logger doc:name="Log IDP Poll Status"
-				doc:id="log-idp-poll-status"
-				level="INFO"
-				message="#['IDP_POLL | executionId=' ++ vars.idpExecutionId ++ ' | status=' ++ vars.idpStatus]" />
+			<choice doc:name="Skip If Already Done"
+				doc:id="skip-if-done">
+				<when expression="#[!vars.idpPollDone]">
 
-			<!-- Force retry if still IN_PROGRESS -->
-			<choice doc:name="Check IDP Status"
-				doc:id="check-idp-poll-status">
-				<when expression="#[vars.idpStatus == 'IN_PROGRESS']">
-					<raise-error doc:name="Retry - Still Processing"
-						doc:id="raise-retry-in-progress"
-						type="APP:IDP_EXTRACTION_FAILED"
-						description="IDP execution still in progress, retrying..." />
-				</when>
-			</choice>
+					<!-- GET IDP Execution Result -->
+					<idp-medical-summarywith-schema-130:getdocumentactionexecution
+						doc:name="GET IDP Execution Result"
+						doc:id="get-idp-result"
+						config-ref="IDP_Medical_Summary_Config"
+						execution-id="#[vars.idpExecutionId]"
+						value-only="true"
+						target="idpGetResponse" />
 
-		</until-successful>
+					<set-variable doc:name="Set IDP Status"
+						doc:id="set-idp-status"
+						variableName="idpStatus"
+						value="#[vars.idpGetResponse.status]" />
 
-		<!-- Step 4: Process final IDP result based on status -->
-		<choice doc:name="Check Final IDP Status"
-			doc:id="check-final-idp-status">
-			<when expression="#[vars.idpStatus == 'SUCCEEDED']">
-				<ee:transform doc:name="Build Success Response"
-					doc:id="build-idp-success-response">
-					<ee:variables>
-						<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
+					<logger doc:name="Log IDP Poll Status"
+						doc:id="log-idp-poll-status"
+						level="INFO"
+						message="#[output application/java --- 'IDP_POLL | executionId=' ++ (vars.idpExecutionId as String) ++ ' | attempt=' ++ payload ++ ' | status=' ++ (vars.idpStatus as String)]" />
+
+					<!-- Check IDP status and handle accordingly -->
+					<choice doc:name="Check IDP Status"
+						doc:id="check-idp-status">
+
+						<!-- SUCCEEDED: build success response and break -->
+						<when expression="#[vars.idpStatus == 'SUCCEEDED']">
+							<ee:transform doc:name="Build Success Response"
+								doc:id="build-idp-success-response">
+								<ee:variables>
+									<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
 output application/java
 ---
 {
@@ -1653,13 +1661,116 @@ output application/java
 	timestamp: now(),
 	status: "SUCCESS"
 }]]></ee:set-variable>
-					</ee:variables>
-				</ee:transform>
-			</when>
-			<otherwise>
-				<!-- FAILED or MANUAL_VALIDATION_REQUIRED -->
-				<ee:transform doc:name="Build Non-Success Response"
-					doc:id="build-idp-nonsuccess-response">
+								</ee:variables>
+							</ee:transform>
+
+							<set-variable doc:name="Set Poll Done - Success"
+								doc:id="set-poll-done-success"
+								variableName="idpPollDone"
+								value="#[true]" />
+
+							<logger doc:name="Log IDP Success"
+								doc:id="log-idp-success-break"
+								level="INFO"
+								message="#[output application/java --- 'IDP_SUCCESS | executionId=' ++ (vars.idpExecutionId as String) ++ ' | Breaking poll loop']" />
+						</when>
+
+						<!-- FAILED: build failure response and break -->
+						<when expression="#[vars.idpStatus == 'FAILED']">
+							<ee:transform doc:name="Build Failed Response"
+								doc:id="build-idp-failed-response">
+								<ee:variables>
+									<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.partNumber,
+	contentDocumentId: vars.newContentDocumentId,
+	contentVersionId: vars.newContentVersionId,
+	executionId: vars.idpExecutionId,
+	extractedData: vars.idpGetResponse,
+	error: "IDP execution failed",
+	timestamp: now(),
+	status: "FAILED"
+}]]></ee:set-variable>
+								</ee:variables>
+							</ee:transform>
+
+							<set-variable doc:name="Set Poll Done - Failed"
+								doc:id="set-poll-done-failed"
+								variableName="idpPollDone"
+								value="#[true]" />
+
+							<logger doc:name="Log IDP Failed"
+								doc:id="log-idp-failed-break"
+								level="WARN"
+								message="#[output application/java --- 'IDP_FAILED | executionId=' ++ (vars.idpExecutionId as String) ++ ' | Breaking poll loop']" />
+						</when>
+
+						<!-- MANUAL_VALIDATION_REQUIRED: build response and break -->
+						<when expression="#[vars.idpStatus == 'MANUAL_VALIDATION_REQUIRED']">
+							<ee:transform doc:name="Build Manual Validation Response"
+								doc:id="build-idp-manual-response">
+								<ee:variables>
+									<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
+output application/java
+---
+{
+	partNumber: vars.partNumber,
+	contentDocumentId: vars.newContentDocumentId,
+	contentVersionId: vars.newContentVersionId,
+	executionId: vars.idpExecutionId,
+	extractedData: vars.idpGetResponse,
+	error: "IDP execution requires manual validation",
+	timestamp: now(),
+	status: "MANUAL_VALIDATION_REQUIRED"
+}]]></ee:set-variable>
+								</ee:variables>
+							</ee:transform>
+
+							<set-variable doc:name="Set Poll Done - Manual"
+								doc:id="set-poll-done-manual"
+								variableName="idpPollDone"
+								value="#[true]" />
+
+							<logger doc:name="Log IDP Manual Validation"
+								doc:id="log-idp-manual-break"
+								level="WARN"
+								message="#[output application/java --- 'IDP_MANUAL_VALIDATION | executionId=' ++ (vars.idpExecutionId as String) ++ ' | Breaking poll loop']" />
+						</when>
+
+						<!-- IN_PROGRESS: wait and continue polling -->
+						<otherwise>
+							<logger doc:name="Log IDP Still Processing"
+								doc:id="log-idp-still-processing"
+								level="INFO"
+								message="#[output application/java --- 'IDP_IN_PROGRESS | executionId=' ++ (vars.idpExecutionId as String) ++ ' | Waiting ' ++ p('idp.retryDelay') ++ 'ms before next poll...']" />
+
+							<!-- Delay before next poll attempt -->
+							<ee:transform doc:name="Polling Delay"
+								doc:id="polling-delay">
+								<ee:variables>
+									<ee:set-variable variableName="_pollDelay"><![CDATA[%dw 2.0
+output application/java
+import java!java::lang::Thread
+---
+Thread::sleep(p('idp.retryDelay') as Number)]]></ee:set-variable>
+								</ee:variables>
+							</ee:transform>
+						</otherwise>
+					</choice>
+
+				</when>
+			</choice>
+
+		</foreach>
+
+		<!-- Handle case where all poll attempts exhausted (still IN_PROGRESS) -->
+		<choice doc:name="Check Poll Exhausted"
+			doc:id="check-poll-exhausted">
+			<when expression="#[!vars.idpPollDone]">
+				<ee:transform doc:name="Build Timeout Response"
+					doc:id="build-idp-timeout-response">
 					<ee:variables>
 						<ee:set-variable variableName="idpExtractedData"><![CDATA[%dw 2.0
 output application/java
@@ -1670,18 +1781,18 @@ output application/java
 	contentVersionId: vars.newContentVersionId,
 	executionId: vars.idpExecutionId,
 	extractedData: vars.idpGetResponse,
-	error: "IDP execution finished with status: " ++ (vars.idpStatus default "UNKNOWN"),
+	error: "IDP polling exhausted after " ++ p('idp.maxRetries') ++ " attempts - still IN_PROGRESS",
 	timestamp: now(),
-	status: vars.idpStatus default "FAILED"
+	status: "TIMEOUT"
 }]]></ee:set-variable>
 					</ee:variables>
 				</ee:transform>
 
-				<logger doc:name="Log IDP Non-Success"
-					doc:id="log-idp-non-success"
-					level="WARN"
-					message="#['IDP_NON_SUCCESS | executionId=' ++ vars.idpExecutionId ++ ' | status=' ++ vars.idpStatus]" />
-			</otherwise>
+				<logger doc:name="Log IDP Poll Timeout"
+					doc:id="log-idp-poll-timeout"
+					level="ERROR"
+					message="#[output application/java --- 'IDP_POLL_TIMEOUT | executionId=' ++ (vars.idpExecutionId as String) ++ ' | Max retries (' ++ p('idp.maxRetries') ++ ') exhausted']" />
+			</when>
 		</choice>
 
 		<json-logger:logger
